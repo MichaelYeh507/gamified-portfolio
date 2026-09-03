@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { flagNumber } from '../core/flags.js';
 import areaDefs from '../content/areas.js';
+import { PITCH } from './pitchPlan.js';
 import projects from '../content/projects.js';
 import { plazaFloorRadius } from './areas/ProjectsArea.js';
 import { fordReliefAt, distanceToRoutes, distanceToPolyline, FORD, ROAD } from './wayfindingPlan.js';
@@ -801,11 +802,14 @@ export default class Terrain {
         cover *= laneBare(x, z);
         cover *= discFade(x, z, projectsDef?.center, floorR + 0.5, 2.5);
         cover *= discFade(x, z, contactDef?.center, 2.4, 2.2);
+        // The football pitch: a worn patch under the goal and the ball (3 Sep).
+        cover *= discFade(x, z, PITCH.center, PITCH.radius, 1.6);
 
         // Blades: cover, minus where standing content owns the ground.
         let blades = cover;
         blades *= discFade(x, z, [4.2, 4.2], 7.0, 1.8); // the landing's name + tagline
         blades *= discFade(x, z, contactDef?.center, 9.5, 2.0); // the whole arc hangout
+        blades *= discFade(x, z, PITCH.center, PITCH.radius + 1.0, 1.5); // the pitch and its touchline
         if (frame) {
           // The slab lanes flank the corridor's painted road; a blade through
           // a risen card's type would be the letters bug all over again.

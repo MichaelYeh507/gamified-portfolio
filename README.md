@@ -46,7 +46,7 @@ what must not ship (raw GLBs, tooling files, three's unused Draco decoders)
 and fails on what must (a placeholder in the HTML, a missing sibling,
 `_headers`, the preview image).
 
-**`npm run check` is the one to run before believing anything.** Ten checks:
+**`npm run check` is the one to run before believing anything.** Eleven checks:
 it re-derives `palette.png` from its source and diffs the pixels, runs our
 `^ref` naming layer over **all 64 of the reference author's shipped GLBs** and checks the
 counts against report `F`, runs the runtime pipeline over the reference's `areas.glb`
@@ -61,7 +61,8 @@ geometry, the `.length` layout) — over the **real height field** with the
 island's no-overlap contracts, plus the **wayfinding** plan (roads, fords,
 posts), the **leaves** simulation as a pure step, and the **shipping
 surface** (`check-site`: the rendered head and fallback against the content,
-the static versions, the `_headers` rules). The naming and pipeline checks need
+the static versions, the `_headers` rules), and the **football pitch**'s swept
+site. The naming and pipeline checks need
 the reference build's source cloned at `reference/source/` (gitignored; the
 repo is named in `CREDITS.md`); the rest need nothing but `npm install`.
 
@@ -491,6 +492,11 @@ too, where the damping used to beat the roll), the map and controls buttons
 are labelled pills, and the rain rings stay off the open sea. Also found and
 fixed on the way: the dev server had been running two copies of three
 (`KNOWN-ISSUES.md` 27).
+
+**Milestone 31 — a football pitch** (3 September 2026, late). A car-sized
+ball at Rocket League proportions and a goal three balls wide, both
+code-built, on the north shore's open ground (swept, `world/pitchPlan.js`;
+`check-pitch` is the eleventh suite). Boost into the ball and it flies.
 
 Not done yet: **touch steering** (`Input.js` reads keys only; the touch copy
 says so honestly until it exists), toasts (deferred by Michael), bridges

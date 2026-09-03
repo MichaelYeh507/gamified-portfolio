@@ -49,6 +49,8 @@ import Weather from '../cycles/Weather.js';
 import { makeSlabsTexture } from '../render/slabs.js';
 import Confetti from '../render/Confetti.js';
 import Wayfinding from '../world/Wayfinding.js';
+import Pitch from '../world/Pitch.js';
+import { PITCH } from '../world/pitchPlan.js';
 import { wayfindingPlan, ROAD } from '../world/wayfindingPlan.js';
 import Water from '../world/Water.js';
 import Bedrock from '../world/Bedrock.js';
@@ -433,9 +435,13 @@ export default class Game {
     // monolith stands 4.14 units inside the wall of one.
     this.island = new Island(this.terrain, {
       seed: 7,
-      clearings: areaDefs
-        .filter((def) => def.clearing)
-        .map((def) => ({ x: def.center[0], z: def.center[1], radius: def.clearing })),
+      clearings: [
+        ...areaDefs
+          .filter((def) => def.clearing)
+          .map((def) => ({ x: def.center[0], z: def.center[1], radius: def.clearing })),
+        // The football pitch (3 Sep): nothing grows on it or leans over it.
+        { x: PITCH.center[0], z: PITCH.center[1], radius: PITCH.clearing },
+      ],
       // The roads get the clearings' promise stretched along their length: a
       // margin past the sand so nothing leans over the drivable line.
       corridors: wayfindingPlan().routes.map((route) => ({
@@ -646,6 +652,12 @@ export default class Game {
      */
     this.wayfinding = new Wayfinding(this);
     this.scene.add(this.wayfinding.build());
+
+    // The football pitch (3 Sep, Michael: "a soccer ball and goal near top
+    // left of the map"): world-level like the signposts, through
+    // `objects.add`, so the ball is a body from the first frame.
+    this.pitch = new Pitch(this);
+    this.pitch.build();
 
     // The tracks target is drawn once before anything samples it, so the
     // warm-up compiles the ground against a real (black) texture rather than
