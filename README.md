@@ -39,9 +39,9 @@ content-hashed (`assets/`) or content-versioned (`models/`, `fonts/`,
 `projects/`, through `src/core/staticUrl.js`'s `?v=`), revalidation on the
 HTML. The `<title>`, description, favicon, social preview tags and the
 accessible fallback are rendered from `src/content/` at build
-(`tools/lib/site-html.mjs`); **set `SITE_URL`** (a Pages build variable, or
-`.env.production`) to the public origin so the absolute Open Graph URLs
-appear — `prune-dist` warns until it is. `prune-dist` is the gate: it strips
+(`tools/lib/site-html.mjs`); **`SITE_URL`** (`.env.production`, or a build
+variable on the host) is the public origin the absolute Open Graph URLs
+need — `prune-dist` warns while it is unset. `prune-dist` is the gate: it strips
 what must not ship (raw GLBs, tooling files, three's unused Draco decoders)
 and fails on what must (a placeholder in the HTML, a missing sibling,
 `_headers`, the preview image).
@@ -935,51 +935,24 @@ layer.
 
 ## Next
 
-`ROADMAP.md` is authoritative. In short:
+`ROADMAP.md` → *Carried into the next session* is authoritative. In short, as
+of 3 September 2026 with the site live at michaelyeh.dev:
 
-1. ~~**Phase 2a — world model and rendering.**~~ **Closed 19 August**, all seven
-   blocks, with the palette chosen at its gate rather than inherited.
-2. ~~**Phase 2b — vertical slice.**~~ **Complete 20 August.** You can load the site,
-   drive to a project, read it, and send someone a link that lands in front of that
-   one board with its card open. Areas, beacons, the plaza, `setMode()`, the card
-   layer, in-world type, both halves of the deep link and the real input categories
-   have all landed, and `aerial-ascent` is written. **The only thing left in the
-   block is the prose**, which is the item below.
-3. **Phase 3 — the art and all the content.** The long pole. **Resourced 30 Aug
-   (decision 47):** every asset is found — CC0 or CC-BY, credited in `CREDITS.md`
-   and a site credits panel — and auto-retinted onto the palette by a script;
-   nothing is hand-modeled. ~~Nothing clears the bloom threshold~~ — **the
-   emissive layer landed 31 Aug** (milestone 14): the world glows at night, and
-   what remains of the phase is the areas themselves.
+1. **Touch steering.** A phone cannot drive the site yet (`KNOWN-ISSUES.md`
+   24); the launch copy says so honestly. A virtual stick on the canvas
+   mapped onto the same `actions`, plus boost and jump buttons; then the
+   real phone pass.
+2. **The payload.** The physics wasm ships as base64 inside the JS chunk
+   (`KNOWN-ISSUES.md` 25); the non-compat Rapier package behind a wasm plugin
+   is the lever for the phone's load time.
+3. **Bridges** at the three fords, from Michael's offered assets through the
+   retint tool, or a plank bridge in code.
+4. **The art pass** — more content and a better-looking map, on Michael's
+   note — and his drive verdict on the look calls still only screenshot-judged.
+5. **Small holes:** a reset for the football when it leaves the island, a
+   score, toasts (deferred by Michael), the `availability` line and the two
+   CMU one-liners in `src/content/` when he writes them.
 
-   **Its shape is now measured rather than assumed** (20 August). Four findings in
-   `ROADMAP.md` → *Read off the reference's running build* cut a lot of assumed effort: the reference author has
-   **no animation system** at all, **~14 world textures** in total with noise and
-   gradients generated at boot, models that are Blender but average **306 verts**
-   with a ~14-mesh prop library reused 450 times, and areas where only about a
-   **third of nodes carry visual geometry**. *The reference's 118 files against our 40* maps
-   every one of the reference's systems as have / decided-out / scheduled / undecided, and
-   *Immediate next actions* item 10 has the opening sequence.
-
-   **The opening sequence is complete (21 August)** — all five code-track items:
-   the palette file (`public/palette.png`, 128 × 4), the scale-reference GLB, the
-   `^ref` import path, the sunken-plaza test and ambient motion. Each has a
-   write-up under *Read off the reference's running build*. Two of them are validated by
-   running our code against **the reference author's own 64 GLBs** (`npm run check`), which
-   corrected four claims in report `F` on the way.
-
-   **Four npm scripts came with it** and they are the fastest way to check the
-   project is sane: `npm run check` (palette bytes, the naming layer against the reference's
-   data, the runtime pipeline against the reference's `areas.glb`), `npm run palette`,
-   `npm run scale-ref` and `npm run sweep-basin`.
-
-**Two look calls are open and both are behind a boot flag** (21 August), so
-neither has changed the shipped world: `#sink=` for how deep the projects plaza
-sits, and `#wind=` for how hard the trees move. Both default to the world as it
-was. `ROADMAP.md` → *Scheduled, not open*.
-
-**The writing is now the critical path, and it is the whole of it.** It did not block
-2a; it is all that is left of 2b, which is otherwise closed. **Both of the load-bearing blanks are
-now filled** — `aerial-ascent` got its itch.io URL on 19 Aug and the RAG pipeline got
-its name, **Footnote**, on 20 Aug. What is left is prose, which is a writing job
-rather than a decision.
+Phases 2a, 2b, 3's opening sequence, the districts, game feel, wayfinding,
+the alive list and the deploy are all closed; their write-ups are the
+milestones above and the *Now* chain in `ROADMAP.md`.

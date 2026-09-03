@@ -3324,50 +3324,64 @@ itself instead of arriving as a finding.
 
 ### Carried into the next session
 
-**THE CODE TRACK PICKS UP HERE — FINISH THE DEPLOY, then bridges and the reference's
-verdict.** The 3 Sep session did the repo's half of Phase 6 (see the *Now*
-entry): the build audit and the Draco fix, the data-rendered head and
-fallback, versioned statics with immutable headers, Cloudflare Pages
-config, the `og.jpg`, `check-site` as the tenth suite, a full preview run on
-the production build. **Waiting on Michael, in this order:**
+**THE CODE TRACK PICKS UP HERE — THE SITE IS LIVE; touch steering, then
+bridges, then the art pass.** The 3 Sep session, in one line each (every
+item has a *Now* entry above with the measurements):
 
-0. **The reference's side of the deploy.** (a) ~~A Cloudflare account and a Pages
-   project~~ **Done 3 Sep, with one correction:** the repo went to GitHub
-   (`MichaelYeh507/gamified-portfolio`) and the dashboard created a
-   **Worker** with Git integration, not a Pages project — the first deploy
-   built clean and failed in `npx wrangler deploy` on the Pages-flavoured
-   `wrangler.toml`; it is a `[assets]`-only Workers config now, which
-   honours `_headers` the same way. (b) ~~The domain~~ **Done the same
-   night: the site is live at https://michaelyeh.dev** (Cloudflare
-   Registrar, attached in the dashboard), and `SITE_URL` is committed in
-   `.env.production` so the canonical/OG tags land on the next push.
-   **Measured on the live origin, 3 Sep 01:21 UTC:** HTML `br` +
-   `max-age=0, must-revalidate`; the JS chunk `br` + `immutable`; a model
-   `model/gltf-binary` + `immutable` (CF-Cache HIT); the glTF Draco wasm
-   `application/wasm`, 200; the pruned stray decoder 404 (nothing fetches
-   it); `_headers` itself 404 (not served); nosniff, referrer and
-   permissions policies on every response. One fact to know: Cloudflare's
-   Brotli is on-the-fly at a low level, so the 3.9 MB chunk travels as
-   **1.35 MB**, not the 1.06 MB a quality-11 encode gives (gzip would be
-   1.41 MB) — the payload lever in 0c is worth ~250 KB more here than on a
-   host that precompresses. (c) `wrangler.toml` `name` is the project name,
-   unchanged. Then the **real-device pass on the live URL** — Michael's phone — knowing
-   already that touch steering does not exist (`KNOWN-ISSUES.md` 24): the
-   pass is for boot time, the fallback on a browser without WebGPU/WebGL2,
-   the plaza in portrait (`KNOWN-ISSUES.md` 23), and the copy.
-0b. **Touch steering**, right after it is live: a drag-to-steer on the
-   canvas (the reference's `Inputs.js` touch half is the mechanism reference — a
-   virtual stick mapped onto the same `actions`), the `.input-touch` copy
-   back to "drag to steer" the day it is true, a boost/jump button pair.
-0c. **The payload lever, when it matters**: `@dimforge/rapier3d` (non-compat)
-   behind a wasm plugin takes the 2.0 MB physics wasm out of the JS as a
-   real `.wasm` — ~250 KB less on the wire, 2.9 MB of base64 out of the
-   parse path (`KNOWN-ISSUES.md` 25). The reference's phone said the load is "much
-   much longer" (3 Sep); this is the first thing to try for it.
+- **Deployed.** The build audit (6.3 → 4.9 MB; three Draco decoders shipped
+  for one fetched), the head and the accessible fallback rendered from
+  `src/content/`, content-versioned statics under immutable headers,
+  `og.jpg`, `check-site`. GitHub `MichaelYeh507/gamified-portfolio`; a
+  Cloudflare **Worker** with static assets (not Pages — the dashboard's
+  default now), Git-connected: push to `master` = build + deploy. Domain
+  from Cloudflare Registrar: **https://michaelyeh.dev**, `SITE_URL`
+  committed. Live headers measured: immutable on hashed/versioned files,
+  revalidate on HTML, Brotli (on-the-fly: the chunk travels at 1.35 MB, not
+  the 1.06 a full encode gives), `application/wasm`, the security headers.
+- **His first live notes, all landed:** fence fixed, career type up a third
+  on a longer card (rows drawn over every model), the amber glow term back
+  in every material (a shadowed variable had compiled it out since 2 Sep),
+  auto-flip at 1.5 s and in deep water (wet torque/hop boosts), labelled MAP
+  / CONTROLS pills, rain splashes as the reference's `splashesNode` verbatim over a
+  generated voronoi at 0.45 of the reference's density.
+- **The water, three passes on his screenshots:** channels and the coast
+  through a two-octave warp with width varying along the run (bank gradient
+  held), a wet-sand bank, a narrower beach ramp, mottled grass to the
+  water, ripple contours as lines rather than fills, and **no white edge
+  bands at all** (the terrain's zigzagged along the mesh; the water's read
+  as a border) — the edge is the colour change now.
+- **A football pitch at Rocket League scale** at [9, −31] (map top-right,
+  swept): car-sized ball, a goal three balls wide with net colliders,
+  `check-pitch` the **eleventh** suite.
+- **The repo names the reference only in `CREDITS.md`** (his call): ~2,100
+  replacements by script and hand, `research/` and the clone untracked, the
+  clone reached through a `reference/source` junction, `check-site` guards
+  the name, history squashed to one commit and force-pushed, and the
+  co-author trailer dropped from commits (his call: no Claude contributor).
+- **Dev trap fixed:** Vite's optimizer crawled the reference clone and
+  prebundled two threes (`KNOWN-ISSUES.md` 27); discovery is off, three is
+  deduped.
+
+**What the next session does, in order:**
+
+0. **Touch steering** — the site is live and a phone cannot drive it
+   (`KNOWN-ISSUES.md` 24): a drag-to-steer on the canvas (the reference's
+   `Inputs.js` touch half is the mechanism reference — a virtual stick
+   mapped onto the same `actions`), a boost/jump button pair, the
+   `.input-touch` copy back to "drag to steer" the day it is true. Then the
+   **phone pass** proper: boot time on cellular ("much much longer" was his
+   first read — the Rapier lever in 0b is the answer), the fallback on a
+   browser without WebGPU/WebGL2, the plaza in portrait (`KNOWN-ISSUES.md`
+   23).
+0b. **The payload lever**: `@dimforge/rapier3d` (non-compat) behind a wasm
+   plugin takes the 2.0 MB physics wasm out of the JS — ~250 KB less on the
+   wire here (Cloudflare's weak Brotli), 2.9 MB of base64 out of the parse
+   path (`KNOWN-ISSUES.md` 25).
+0c. **The pitch's loose ends**, when he asks: a reset for a ball that leaves
+   the island (R respawns the car, not the ball), a score, a second goal.
 0d. **The art pass** (Michael, 3 Sep: "improve the art / map a bit more
    later to make it look better and like it has more content") — after
-   touch steering and bridges; the reference's offered assets first, the retint tool,
-   `CREDITS.md`.
+   bridges; his offered assets first, the retint tool, `CREDITS.md`.
 
 The items below keep their order after that. After the six surface fixes,
 the 2 Sep session ran
