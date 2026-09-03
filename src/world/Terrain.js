@@ -240,7 +240,9 @@ const CHANNELS = [
   { bedDepth: 0.85, points: [[14, -9], [24, -20], [30, -34], [36, -46]] },
   // Short inlets biting into the coast — the reference's has several, and they are what put
   // water in front of you without committing a crossing.
-  { bedDepth: 1.1, points: [[-56, 12], [-44, 10], [-36, 12]] },
+  // Two units north of where it stood until 3 Sep: with the banks warped
+  // (`bankWarp`) its bulge reached the career corridor's road at [-43, 4].
+  { bedDepth: 1.1, points: [[-56, 13], [-45, 12.5], [-37, 14]] },
   { bedDepth: 1.0, points: [[52, 50], [47, 47], [42, 45]] },
   { bedDepth: 1.0, points: [[-46, -44], [-37, -37], [-31, -33]] },
 
@@ -309,6 +311,52 @@ function relief01(x, z) {
     Math.sin((x + z) * 0.021) * 0.33 +
     Math.cos(x * 0.013 - z * 0.017) * 0.23;
   return n * 0.5 + 0.5;
+}
+
+/**
+ * The painted look, procedurally — 3 Sep, on Michael's read of the reference's water
+ * against ours ("it looks much less artificial compared to ours for some
+ * reason"). The reason, measured off the reference's terrain PNG: the reference's bodies are
+ * hand-painted, so they bulge and pinch along their length, split and
+ * rejoin, and carry edge detail at two scales; ours were polylines carved
+ * with one cross-section — every river a tube of one width with parallel
+ * banks, every bank the same bank. Three terms put the brush back:
+ *
+ *   - **`bankWarp`**: the point is sampled through a smooth two-octave
+ *     offset (±1.6 at ~33 units, ±0.5 at ~12) before any channel or the
+ *     coast is measured, so straight segments read as meanders and the
+ *     shoreline gains lobes. The physics reads the same function, so the
+ *     driven bank and the drawn bank stay one line.
+ *   - **`widthFactor`**: each channel's half-width swells and narrows along
+ *     its run (0.7 → 1.3 over ~30 units) — and the depth follows the width,
+ *     so the bank gradient stays at `BANK_GRADIENT` everywhere; a pinch is
+ *     a shallower, narrower stretch, never a steeper one.
+ *   - **`edgeWobble`**: ±0.35 on the bank distance at ~5 units, the small
+ *     scale of a painted edge.
+ *
+ * Every term is sines, like `relief01`, for the same reason: deterministic,
+ * dependency-free, and cheap enough to evaluate per grid sample at boot and
+ * per prop placement. Amplitudes are ours, tuned on the build.
+ */
+function bankWarp(x, z) {
+  const wx = Math.sin(z * 0.19 + x * 0.07) * 1.6 + Math.sin(z * 0.53 - x * 0.31 + 1.3) * 0.5;
+  const wz = Math.cos(x * 0.17 - z * 0.06 + 0.9) * 1.6 + Math.cos(x * 0.47 + z * 0.29 + 2.1) * 0.5;
+  return [x + wx, z + wz];
+}
+
+function widthFactor(x, z) {
+  const n =
+    (Math.sin(x * 0.23 + 0.4) * Math.cos(z * 0.2 - 1.1) * 0.5 +
+      Math.sin((x - z) * 0.11 + 2.0) * 0.5) *
+      0.5 +
+    0.5;
+  // 0.75 → 1.2: 0.7 → 1.3 put the west inlet's bulge onto the career
+  // corridor's road (`check-career`, the dry-flat sweep at 4 units/yr).
+  return 0.75 + 0.45 * n;
+}
+
+function edgeWobble(x, z) {
+  return Math.sin(x * 1.3 + z * 0.7) * Math.cos(z * 1.1 - x * 0.5) * 0.35;
 }
 
 /** Squared distance from a point to a segment, in the XZ plane. */
@@ -454,23 +502,32 @@ export function carveAt(x, z) {
   let deepest = 0;
   let touched = false;
 
+  // The painted look (see `bankWarp`): the channels are measured from a
+  // warped point, at a width that varies along the run, with a wobbled edge.
+  const [xw, zw] = bankWarp(x, z);
+  const wf = widthFactor(x, z);
+  const wobble = edgeWobble(x, z);
+
   for (const channel of CHANNELS) {
+    const halfWidth = channel.halfWidth * wf;
     let nearest = Infinity;
     for (let i = 0; i < channel.points.length - 1; i++) {
       const [ax, az] = channel.points[i];
       const [bx, bz] = channel.points[i + 1];
-      const d = distanceToSegment(x, z, ax, az, bx, bz);
+      const d = distanceToSegment(xw, zw, ax, az, bx, bz);
       if (d < nearest) nearest = d;
       if (nearest === 0) break;
     }
-    if (nearest >= channel.halfWidth) continue;
+    nearest = Math.max(0, nearest + wobble);
+    if (nearest >= halfWidth) continue;
 
     // Zero gradient at the centreline and at the bank top, so neither the render
     // mesh nor the 1.5-unit collision grid gets a crease to catch a wheel on.
-    const profile = 1 - smoothstep01(nearest / channel.halfWidth);
-    // ±15 % along the run, so a channel is not a uniform trench. This is the
-    // Shares `relief01` with the land-relief term in `heightAt`.
-    const varied = channel.bedDepth * (0.85 + 0.3 * relief01(x, z));
+    const profile = 1 - smoothstep01(nearest / halfWidth);
+    // ±15 % along the run, so a channel is not a uniform trench (shares
+    // `relief01` with the land-relief term in `heightAt`), times the width
+    // factor, so the bank gradient is the same in a pinch as in a bulge.
+    const varied = channel.bedDepth * wf * (0.85 + 0.3 * relief01(x, z));
     const depth = varied * profile;
     deepest = touched ? smoothMax(deepest, depth, CONFLUENCE_BLEND) : depth;
     touched = true;
@@ -553,8 +610,12 @@ export function assertChannelsClear() {
  * than call this, so that nothing ever sits at a height the car cannot drive on.
  */
 export function heightAt(x, z) {
-  const d = Math.hypot(x, z);
-  const beach = beachRadius(Math.atan2(z, x));
+  // The coast through the same warp the channels use (`bankWarp`): a
+  // sum-of-sines radius is smooth at every scale, and a painted shoreline
+  // is not.
+  const [xw, zw] = bankWarp(x, z);
+  const d = Math.hypot(xw, zw);
+  const beach = beachRadius(Math.atan2(zw, xw));
   const carved = -carveAt(x, z);
 
   // `LAND_RELIEF` is 0 (decision 46), so inland height *is* the carve. The
@@ -728,7 +789,14 @@ export default class Terrain {
 
         // Cover: grassy on land, ramping to bare sand down the beach —
         // full grass by −0.02 so the flat land at exactly 0 is unambiguous.
-        let cover = smoothstep01((h + 0.28) / 0.26);
+        // The ramp's start wanders ±0.11 in height with a ~7-unit noise
+        // (3 Sep, the painted look): the reference's green channel is mottled right up
+        // to the reference's water, so grass reaches the bank in patches and the
+        // sand widens in others instead of one even ring around every body.
+        // Ramp 0.26 → 0.18 of height on 3 Sep ("white slosh"): the bare ring
+        // was ~2 units wide on the bank and the reference's grass reaches the water.
+        const mottle = Math.sin(x * 0.9 + z * 0.4) * 0.5 + Math.sin(z * 0.85 - x * 0.35 + 1.3) * 0.5;
+        let cover = smoothstep01((h + 0.2 + mottle * 0.09) / 0.18);
         cover *= routeBare(x, z);
         cover *= laneBare(x, z);
         cover *= discFade(x, z, projectsDef?.center, floorR + 0.5, 2.5);

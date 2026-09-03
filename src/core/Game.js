@@ -255,7 +255,17 @@ export default class Game {
       reveal: this.reveal,
       lighting: this.lighting,
       sky: this.sky,
-      water: this.water,
+      /**
+       * No waterline band on the ground itself (3 Sep, Michael's screenshot
+       * of a ford: "extra white lines"). The band paints every fragment
+       * within `surfaceThickness` of the water's height, and on the
+       * terrain that height is interpolated across 1.5-unit triangles, so
+       * on our flat banks the line zigzags along the mesh. The water
+       * plane's own shore band draws the foam from the smooth depth
+       * texture instead; props standing in water keep the band, where it
+       * reads as a wet line on a barrel.
+       */
+      water: null,
       night: this.night,
       side: THREE.DoubleSide,
       albedo: this.terrainAlbedo(positionWorld.xz),

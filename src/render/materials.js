@@ -525,6 +525,8 @@ export function makeTerrainAlbedo({ terrain, water, noises, tracks = null, slabs
   const grass = uniform(new THREE.Color(PALETTE[COLOR.grass]));
   const grassDark = uniform(new THREE.Color(PALETTE[COLOR.grassDark]));
   const sand = uniform(new THREE.Color(PALETTE[COLOR.sand]));
+  const dirt = uniform(new THREE.Color(PALETTE[COLOR.dirt]));
+  const wood = uniform(new THREE.Color(PALETTE[COLOR.wood]));
   const shallow = uniform(new THREE.Color(PALETTE[COLOR.accentCool]));
   const deep = uniform(new THREE.Color(PALETTE[COLOR.water]));
   /**
@@ -551,7 +553,19 @@ export function makeTerrainAlbedo({ terrain, water, noises, tracks = null, slabs
     // noise field so open land reads as ground rather than as a fill colour.
     const tone = texture(noises.perlin, worldXZ.mul(0.035)).r;
     const grassColor = mix(grassDark, grass, smoothstep(0.3, 0.7, tone));
-    const dry = mix(sand, grassColor, cover).toVar();
+    /**
+     * The bank darkens to wet sand toward the waterline (3 Sep, Michael:
+     * "the transition between water and land is just a white slosh"). The
+     * reference's dirt is a saturated orange, so the reference's white shore band reads as
+     * foam against it; ours was the palette's pale sand, and pale sand next
+     * to a white band next to a white waterline is one wide pale halo. The
+     * last 0.25 of height above the water blends the sand toward the dirt
+     * and wood tones — a wet bank — and the shallows start from the same
+     * tone below, so the band has something to be white against.
+     */
+    const wetSand = mix(sand, mix(dirt, wood, 0.35), 0.75);
+    const bank = mix(sand, wetSand, smoothstep(-0.25, 0.0, depth));
+    const dry = mix(bank, grassColor, cover).toVar();
 
     if (slabs) {
       const stones = texture(slabs, worldXZ.mul(0.175)).r;
@@ -564,7 +578,7 @@ export function makeTerrainAlbedo({ terrain, water, noises, tracks = null, slabs
     // sand start is what keeps a painted road readable across a ford — the
     // shallow crossing shows sandy ground through thin water, exactly as the reference's
     // shallow stop is orange.
-    const wet = mix(sand, shallow, smoothstep(0.05, 0.5, depth)).toVar();
+    const wet = mix(wetSand, shallow, smoothstep(0.05, 0.5, depth)).toVar();
     wet.assign(mix(wet, deep, smoothstep(0.5, 1.15, depth)));
 
     return mix(dry, wet, smoothstep(0.0, 0.12, depth));
@@ -672,10 +686,17 @@ export function makeWaterMaterial({
   const cut = smoothstep(0.0, 0.05, depth.add(wobble)).mul(insideDisc);
 
   material.opacityNode = Fn(() => {
-    // The shore band: a white ring hugging the coast, starting past the
-    // fords' splash depth (≤ ~0.06) so a road crossing keeps its sand.
-    const shore = smoothstep(0.05, 0.1, depth)
-      .mul(smoothstep(0.18, 0.34, depth).oneMinus());
+    /**
+     * No shore band. The reference's water has one — `step(b, 0.17)`, solid white
+     * from the waterline to 0.17 of full depth — and it reads as foam there
+     * because the reference's painted banks are steep, so 0.2 of depth is a few
+     * pixels of ground. Ours is a smoothstep profile that flattens toward
+     * the waterline, and the same band spanned a unit (3 Sep: "white
+     * slosh", then "one thick white line around most bodies of water" at
+     * 0.13, then a hairline at 0.09 that Michael asked to drop). The edge
+     * of the water is the colour change from wet sand to the shallows in
+     * `makeTerrainAlbedo`, and the moving contours below are the white.
+     */
 
     // The reference's ripples, near-verbatim: elevation contours scrolled by the wind
     // clock, index-hashed into the perlin so each contour breaks up
@@ -692,16 +713,25 @@ export function makeWaterMaterial({
     const ripples = slope.fract()
       .sub(b.mul(1.3).sub(0.3).oneMinus())
       .add(rippleNoise);
-    // Method-form step: (−0.4 ≥ ripples), the reference's line's actual meaning.
-    const rippleMask = float(-0.4).step(ripples);
+    /**
+     * A LINE per contour, not the reference's fill. The reference's mask is `ripples ≤ −0.4`:
+     * everything below the edge, which in shallow water is most of the
+     * cycle — a filled patch, not a line. On the reference's steep painted banks that
+     * patch is a sliver tucked against the shore band; on our flatter
+     * profile the same depth spans metres, and it stood in the middle of a
+     * pond as a pale blob (Michael, 3 Sep, with a screenshot). Gating the
+     * ripples deeper took the blob and the waves with it ("revert... now
+     * our waves are kind of gone"), so instead each contour is the band
+     * −0.52 ≤ ripples < −0.4: the reference's edge, a fixed thickness behind it, at
+     * every depth. Function-form `step(edge, x)`, deliberately.
+     */
+    const rippleMask = step(-0.52, ripples).mul(step(-0.4, ripples).oneMinus());
 
-    // The shallowest water is where the reference's formula is densest — in the reference's world
-    // that is under the shore band anyway. Ours fades the ripples in as the
-    // shore band fades out, so a ford (≤ ~0.06 deep) keeps its sand and the
-    // white detail hands over continuously instead of stacking.
-    const rippleGate = smoothstep(0.18, 0.34, depth);
+    // The ripples fade in past the fords' depth (≤ ~0.06), so a road
+    // crossing keeps its sand.
+    const rippleGate = smoothstep(0.14, 0.3, depth);
 
-    const detail = max(shore, rippleMask.mul(rippleGate).mul(0.85)).toVar();
+    const detail = rippleMask.mul(rippleGate).mul(0.85).toVar();
 
     /**
      * Rain splashes — HIS `splashesNode` (`WaterSurface.js:158-211`), ported
