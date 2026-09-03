@@ -1,0 +1,39 @@
+{
+  "name": "gamified-portfolio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A drivable open-world personal site.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node tools/prune-dist.mjs",
+    "preview": "vite preview --port 4173",
+    "palette": "node tools/build-palette.mjs",
+    "palette:check": "node tools/build-palette.mjs --check",
+    "scale-ref": "node tools/build-scale-reference.mjs",
+    "check-names": "node tools/check-names.mjs",
+    "check-pipeline": "node tools/check-pipeline.mjs",
+    "prep": "node tools/prep-model.mjs",
+    "check-prep": "node tools/check-prep.mjs",
+    "check-career": "node tools/check-career.mjs",
+    "check-contact": "node tools/check-contact.mjs",
+    "check-wayfinding": "node tools/check-wayfinding.mjs",
+    "check-leaves": "node tools/check-leaves.mjs",
+    "check-site": "node tools/check-site.mjs",
+    "check": "npm run palette:check && npm run check-names && npm run check-pipeline && npm run check-loader && npm run check-prep && npm run check-career && npm run check-contact && npm run check-wayfinding && npm run check-leaves && npm run check-site",
+    "sweep-basin": "node tools/sweep-basin.mjs",
+    "check-loader": "node tools/check-loader.mjs",
+    "compress": "node tools/compress.mjs"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.4.2",
+    "@gltf-transform/extensions": "^4.4.2",
+    "@gltf-transform/functions": "^4.4.2",
+    "draco3d": "^1.5.7",
+    "vite": "^8.2.1"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.20.0",
+    "three": "^0.185.1"
+  }
+}

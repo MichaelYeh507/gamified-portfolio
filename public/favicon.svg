@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The tab icon: the car, in the palette's two colours — the void
+       (#05070c) and emissive amber (#ffb454), the band that glows at night.
+       A placeholder in the sense that Michael may want a different mark;
+       not a placeholder in the sense of being wrong. -->
+  <rect width="64" height="64" rx="14" fill="#05070c"/>
+  <path d="M12 39l7-13h26l7 13v9H12z" fill="#ffb454"/>
+  <circle cx="22" cy="48" r="6" fill="#05070c"/>
+  <circle cx="42" cy="48" r="6" fill="#05070c"/>
+  <circle cx="22" cy="48" r="2.5" fill="#ffb454"/>
+  <circle cx="42" cy="48" r="2.5" fill="#ffb454"/>
+</svg>

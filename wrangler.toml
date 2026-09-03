@@ -1,0 +1,26 @@
+# Cloudflare Workers config, static assets only (Phase 6, 3 Sep 2026).
+#
+# The project was created in the dashboard as a Worker with Git integration
+# (Cloudflare's default for new projects; Pages is the older flavour), so the
+# build runs `npm run build` and then `npx wrangler deploy`, which reads this
+# file. There is no Worker script: `[assets]` alone means "serve this
+# directory from the edge", with `public/_headers` and `robots.txt` honoured
+# from inside it. The first deploy attempt (3 Sep) failed on a Pages-flavoured
+# version of this file — "Missing entry-point to Worker script or to assets
+# directory" — which is the line below.
+#
+# Direct upload from this machine, no Git connection needed:
+#   npm run build && npx wrangler deploy
+# (wrangler asks you to log in the first time; `name` below is the project.)
+#
+# `SITE_URL` (the public origin, for the absolute Open Graph tags) is a
+# build-time environment variable: set it in the project's build settings, or
+# in .env.production once the domain is decided.
+name = "gamified-portfolio"
+compatibility_date = "2026-09-02"
+
+[assets]
+directory = "./dist"
+# A URL that matches nothing gets index.html and a 404 status — right for a
+# one-page site with no client-side routing (deep links are query strings).
+not_found_handling = "none"

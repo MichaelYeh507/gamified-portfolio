@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en" class="is-loading">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- The title, the description, the icon, the social preview tags and a
+         Person record, rendered from src/content/ by vite.config.js
+         (`tools/lib/site-html.mjs`) at build and in dev. Not hand-written
+         here so they cannot fall behind the content. -->
+    <!--#meta-->
+    <!-- The reference's two faces, both Google Fonts under the OFL: Amatic SC 700 for every
+         readable surface in the world (it is hard-coded at
+         InteractivePoints.js:216, ProjectsArea.js:259, AltarArea.js:354 and
+         four more), and Nunito for the overlay. A hand-lettered condensed
+         display face on the in-world type is a large part of why the reference's world
+         reads the way it does — ours was the browser default, which is not a
+         choice so much as the absence of one.
+
+         `display=block` rather than `swap`: these draw into canvas textures
+         that are baked once and never redrawn, so a swap would not reach them.
+         `render/textPlate.js` waits on document.fonts before drawing, with a
+         timeout, so a slow CDN costs a fallback face and not a boot. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Nunito:wght@400;700&display=block"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <!-- The 3D surface. Kept in the light DOM on purpose: Messenger seals its
+         canvas in a closed shadow root, which is elegant but makes the scene
+         unreachable to our own tooling and to assistive tech. -->
+    <div id="stage"></div>
+
+    <div id="ui" aria-hidden="true">
+      <div id="loader">
+        <p class="loader__label">Loading</p>
+        <div class="loader__track"><div class="loader__fill"></div></div>
+      </div>
+      <p id="hint" class="hint" hidden>Arrow keys or WASD to drive</p>
+    </div>
+
+    <!-- Exactly one beacon exists in the DOM, because exactly one can ever be
+         active (the reference's InteractivePoints.js:590-639). JS moves it to the projected
+         screen point of whichever interact point is nearest.
+
+         Deliberately NOT inside #ui: that layer is aria-hidden, and a focusable
+         control inside an aria-hidden subtree is unreachable to a screen reader
+         while still being in the tab order — the worst of both. This is the one
+         piece of interface you are meant to operate, so it lives outside, as a
+         real <button> that is announceable and clickable for free. -->
+    <button id="beacon" class="beacon" type="button" hidden>
+      <span class="beacon__key" aria-hidden="true">E</span>
+      <span class="beacon__label"></span>
+    </button>
+
+    <!-- The controls (2 Sep, Michael: "at the start of the game / launch, we
+         can add instructions text, similar to the 'get stuck?' text that
+         disappears, also allow them to open controls menu later"). One
+         panel, two lives: shown at launch as a non-blocking sheet that fades
+         like the stuck hint, and reopened any time by the ? button or H as a
+         proper dialog that pauses the car (`core/Controls.js`). The reference's is the
+         Mouse/Keyboard tab of the reference's menu (`index.html:343-398`), with two verbs
+         the reference author has that we do not (map, honk) and three we have that the reference author does not
+         spell out. Outside #ui for the beacon's reason: it is operable. -->
+    <button id="controls-button" class="ui-button controls-button" type="button" aria-label="Controls" aria-expanded="false" hidden>controls <span class="key" aria-hidden="true">H</span></button>
+
+    <!-- The fast-travel map (`core/FastTravel.js`): the reference's map modal, the image
+         drawn from the island's own terrain data and turned to the screen.
+         M toggles; a pin is a real button. -->
+    <button id="map-button" class="ui-button map-button" type="button" aria-label="Map" aria-expanded="false" hidden>map <span class="key" aria-hidden="true">M</span></button>
+    <!-- Centred and paused, a menu you click a place on (Michael, 2 Sep: "i
+         want the users to feel like they can click on the map and teleport,
+         so that should be centered and opened"). -->
+    <div id="map" class="map" role="dialog" aria-modal="true" aria-label="Map" hidden>
+      <div class="map__panel">
+        <button class="map__close" type="button" aria-label="Close map">✕</button>
+        <h2 class="map__title">Where to?</h2>
+        <div class="map__field">
+          <canvas class="map__texture" width="360" height="360" aria-hidden="true"></canvas>
+          <div class="map__player" aria-hidden="true"></div>
+        </div>
+        <p class="map__foot">Click a place to drive there. <span class="key">M</span> or <span class="key">esc</span> to close</p>
+      </div>
+    </div>
+    <div id="controls" class="controls" role="dialog" aria-modal="false" aria-labelledby="controls-title" hidden>
+      <div class="controls__panel">
+        <h2 id="controls-title" class="controls__title">Controls</h2>
+        <table class="controls__table">
+          <tbody>
+            <tr><td><span class="key">W A S D</span> or <span class="key">arrows</span></td><td>drive</td></tr>
+            <tr><td><span class="key">shift</span></td><td>boost</td></tr>
+            <tr><td><span class="key">space</span></td><td>jump</td></tr>
+            <tr><td><span class="key">X</span></td><td>handbrake</td></tr>
+            <tr><td><span class="key">E</span></td><td>interact</td></tr>
+            <tr><td><span class="key">R</span></td><td>back on the road</td></tr>
+            <tr><td><span class="key">M</span></td><td>map</td></tr>
+            <tr><td><span class="key">H</span></td><td>these controls</td></tr>
+          </tbody>
+        </table>
+        <p class="controls__foot controls__foot--launch">Press <span class="key">H</span> any time to see these again</p>
+        <p class="controls__foot controls__foot--modal">Press <span class="key">H</span> or <span class="key">esc</span> to keep driving</p>
+      </div>
+    </div>
+
+    <!-- The content layer, and the place this build diverges from the reference's entirely.
+         Every word of prose on the reference's site is drawn into a 2D canvas and uploaded
+         as a texture (~600 lines across the slice), which buys text that cannot
+         be selected, copied, translated, searched, zoomed, read aloud or
+         crawled. This is a div, and the browser does all of that correctly.
+
+         Outside #ui for the same reason the beacon is: that layer is
+         aria-hidden, and a focusable control inside an aria-hidden subtree is
+         reachable by Tab and invisible to a screen reader.
+
+         role/aria-modal/aria-labelledby are three of the four things D 6.5 notes
+         the reference author omits; the focus trap, focus restoration and Escape are in Card.js. -->
+    <div id="card" role="dialog" aria-modal="true" aria-labelledby="card-title" hidden>
+      <article class="card__panel">
+        <button class="card__close" type="button" aria-label="Close">✕</button>
+        <h2 id="card-title" class="card__title"></h2>
+        <p class="card__subtitle"></p>
+        <div class="card__body"></div>
+        <dl class="card__meta"></dl>
+        <ul class="card__links"></ul>
+      </article>
+    </div>
+
+    <!-- Cover for the drowning respawn (decision 43). Kept out of #ui so it
+         paints over any future interface as well as over the canvas. -->
+    <div id="veil" aria-hidden="true"></div>
+
+    <!-- The dignified failure mode, straight out of the kairui.dev teardown:
+         the whole portfolio exists as real markup. Revealed if WebGL/WebGPU
+         initialisation fails, and always available to crawlers. Rendered
+         from src/content/ by vite.config.js (`renderFallback` in
+         `tools/lib/site-html.mjs`): the projects, the roles and the links,
+         so it can never carry a template placeholder again — which it did
+         until 3 Sep (`prune-dist` and `check-site` both refuse one). -->
+    <!--#fallback-->
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

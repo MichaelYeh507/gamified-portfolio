@@ -1,0 +1,20 @@
+# Dependencies & build output
+node_modules/
+dist/
+.vite/
+
+# Third-party source cloned for study (reference/) and the teardown notes
+# written against it and two other sites (research/). Both stay local: the
+# clone is not ours to redistribute, and the notes are working material about
+# other people's sites. The check suites that read reference/ say so when it
+# is missing. Attribution for everything ported lives in CREDITS.md.
+reference/
+research/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json

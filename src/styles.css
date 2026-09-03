@@ -1,0 +1,794 @@
+:root {
+  --void: #05070c;
+  --amber: #ffb454;
+  --ink: #e8ecf2;
+  --muted: #8b93a8;
+  --font: Nunito, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /*
+   * The display face, matching the in-world type.
+   *
+   * The beacon is the one place a DOM element and a world surface sit side by
+   * side, so it is the one place the two type systems have to agree — the reference's
+   * beacon labels are Amatic SC too (`InteractivePoints.js:216`). The fallback
+   * chain is deliberately a condensed one: if the webfont never arrives, the
+   * prompt should still be narrow rather than suddenly twice the width.
+   */
+  --font-display: "Amatic SC", "Segoe UI Semibold", ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--font);
+  overscroll-behavior: none;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+#webgl {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* ---------- UI layer ---------- */
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/*
+ * The drowning cover (decision 43). Opacity is driven from JS, on the game's
+ * own tween clock, rather than by a CSS transition — a respawn has to happen on
+ * exactly the frame the veil is opaque, and a transition cannot promise that.
+ *
+ * `--void` rather than white or black: it is the same colour the loader and the
+ * fallback fade through, so every full-screen cover in the site is one colour.
+ */
+#veil {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--void);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#loader {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.9rem;
+  background: var(--void);
+  transition: opacity 600ms ease;
+}
+
+.is-ready #loader,
+.is-fallback #loader {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loader__label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+
+.loader__track {
+  width: 168px;
+  height: 2px;
+  background: #1a2030;
+  overflow: hidden;
+}
+
+.loader__fill {
+  width: 100%;
+  height: 100%;
+  background: var(--amber);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: 2.2rem;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.5rem 1rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid #1d2432;
+  border-radius: 2px;
+  background: rgba(5, 7, 12, 0.72);
+  transition: opacity 1200ms ease;
+}
+
+.hint.is-fading {
+  opacity: 0;
+}
+
+/* Touch devices get a different instruction; the class is set by Input.js.
+ * Honest since 3 Sep: there is no touch steering yet (Input.js reads keys
+ * only), so the copy says so instead of promising a drag that does nothing. */
+.input-touch .hint::after {
+  content: " · best driven with a keyboard, for now";
+}
+
+/*
+ * The controls. One panel, two lives (see index.html): a launch sheet that
+ * sits where the hint sits and fades like it, and a modal that centres over a
+ * scrim while the car is paused. The controls button is the way back to it
+ * for anyone without a keyboard, and with the map button the persistent
+ * interface.
+ *
+ * Both are `.ui-button`: labelled pills, bottom-right, amber type with the
+ * key chip — the muted grey `?` and `map` of 2 Sep disappeared against the
+ * world (Michael, from the live site: "make the map button and controls
+ * (instead of ?) more visible").
+ */
+.ui-button {
+  position: fixed;
+  bottom: 1.1rem;
+  /* Above #ui (10), below #card (18): a card's scrim covers it. */
+  z-index: 16;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.6rem;
+  padding: 0 1rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: rgba(5, 7, 12, 0.82);
+  border: 1px solid rgba(255, 180, 84, 0.55);
+  border-radius: 999px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: color 200ms ease, border-color 200ms ease, background-color 200ms ease;
+}
+
+.ui-button .key {
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+}
+
+.ui-button:hover,
+.ui-button[aria-expanded="true"] {
+  color: var(--amber);
+  border-color: var(--amber);
+  background: rgba(5, 7, 12, 0.94);
+}
+
+.ui-button:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.controls-button {
+  right: 1.1rem;
+}
+
+.controls {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 900ms ease;
+}
+
+.controls[hidden] {
+  display: none;
+}
+
+.controls.is-fading {
+  opacity: 0;
+}
+
+/* The launch life: a sheet top-right, no scrim, the world still drivable
+ * (Michael: the instructions live in the corner; the map is the thing that
+ * takes the centre). */
+.controls.is-launch {
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 1.1rem;
+  pointer-events: none;
+}
+
+/* A whisper of a panel behind the launch sheet (Michael: fully transparent
+ * was "hard to read when it goes into the river"): a thin dark wash and a
+ * shadow on the type, no border. */
+.controls.is-launch .controls__panel {
+  background: rgba(5, 7, 12, 0.34);
+  border-color: transparent;
+  text-shadow: 0 1px 2px var(--void), 0 0 8px rgba(5, 7, 12, 0.8);
+}
+
+/* The modal life: centred, a scrim, the car paused. */
+.controls.is-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 7, 12, 0.55);
+}
+
+.controls__panel {
+  position: relative;
+  min-width: 17rem;
+  padding: 1.1rem 1.4rem 1rem;
+  color: var(--ink);
+  background: rgba(5, 7, 12, 0.86);
+  border: 1px solid #1d2432;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.controls.is-modal .controls__panel {
+  background: rgba(5, 7, 12, 0.94);
+  padding: 1.6rem 2rem 1.4rem;
+}
+
+.controls__title {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
+  color: var(--amber);
+}
+
+.controls__table {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.controls__table td {
+  padding: 0.18rem 0;
+  vertical-align: middle;
+}
+
+.controls__table td:first-child {
+  padding-right: 1.2rem;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.key {
+  display: inline-block;
+  padding: 0.02rem 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--amber);
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+
+.controls__foot {
+  margin: 0.7rem 0 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.controls.is-launch .controls__foot--modal,
+.controls.is-modal .controls__foot--launch {
+  display: none;
+}
+
+/* Touch has no keys: the sheet says what the site needs instead of what to
+ * press. Touch steering is not built yet (see .input-touch .hint above). */
+.input-touch .controls__table {
+  display: none;
+}
+
+.input-touch .controls__title::after {
+  content: " · best driven with a keyboard, for now";
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+/*
+ * The fast-travel map. The button sits beside the controls button; the
+ * panel centres over a scrim like the controls modal. The field is a square
+ * whose canvas is painted from the terrain data at first open; pins and the
+ * player marker are positioned in percent of it.
+ */
+/* Left of the controls button (which is ~9.5rem wide with its chip). */
+.map-button {
+  right: 11.2rem;
+}
+
+/* Centred over a scrim, the car paused: a menu you click a place on. */
+.map {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map[hidden] {
+  display: none;
+}
+
+.map::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 7, 12, 0.55);
+}
+
+.map__panel {
+  position: relative;
+  padding: 1.2rem 1.6rem 1.1rem;
+  color: var(--ink);
+  background: rgba(5, 7, 12, 0.94);
+  border: 1px solid #1d2432;
+  border-radius: 4px;
+}
+
+.map__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+  padding: 0.1rem 0.4rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.map__close:hover,
+.map__close:focus-visible {
+  color: var(--amber);
+  outline: none;
+}
+
+.map__title {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
+  color: var(--amber);
+}
+
+.map__field {
+  position: relative;
+  width: min(24rem, 78vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid #1d2432;
+}
+
+.map__texture {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: auto;
+}
+
+.map__pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.map__dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--amber);
+  border: 2px solid var(--void);
+  box-shadow: 0 0 0 1px var(--amber);
+  transition: transform 150ms ease;
+}
+
+.map__pin:hover .map__dot,
+.map__pin:focus-visible .map__dot {
+  transform: scale(1.35);
+}
+
+.map__pin:focus-visible {
+  outline: none;
+}
+
+.map__name {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 2px var(--void), 0 0 6px var(--void);
+}
+
+.map__player {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-left: 0.42rem solid transparent;
+  border-right: 0.42rem solid transparent;
+  border-bottom: 0.9rem solid var(--ink);
+  filter: drop-shadow(0 0 2px var(--void));
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.map__foot {
+  margin: 0.7rem 0 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+/*
+ * The beacon.
+ *
+ * A sibling of `#ui` rather than a child, because `#ui` is `aria-hidden` and a
+ * focusable control inside an aria-hidden subtree is reachable by Tab but
+ * invisible to a screen reader. It is also the only clickable thing on screen,
+ * so it needs the pointer events that layer gives away.
+ *
+ * Positioned by a `transform` written from JS every frame — never `left`/`top`,
+ * which would lay out and paint on the main thread once per frame for the life
+ * of the page. `translate(-50%, -100%)` puts the anchor at the bottom-centre of
+ * the pill, so it sits *above* the point it labels rather than on top of it.
+ */
+.beacon {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* Above #ui (10), below #veil (20) — a respawn cover must hide it. */
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.4rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--ink);
+  background: rgba(5, 7, 12, 0.82);
+  border: 1px solid #1d2432;
+  border-radius: 2px;
+  cursor: pointer;
+  pointer-events: auto;
+  white-space: nowrap;
+  transition: opacity 160ms ease;
+}
+
+.beacon[hidden] {
+  display: none;
+}
+
+/*
+ * The label matches the world it is pointing at. Amatic SC runs small and
+ * narrow for its point size, so it is set larger than the surrounding UI rather
+ * than at the same size — the same reason the reference's in-world type sits at 0.4 world
+ * units on a 0.6 plate.
+ */
+.beacon__label {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.beacon__key {
+  padding: 0.05rem 0.35rem;
+  font-size: 0.7rem;
+  color: var(--amber);
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+
+/* Touch has no key to press, so the pill says what it is instead of which key. */
+.input-touch .beacon__key {
+  display: none;
+}
+
+.beacon:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/* ---------- the card ---------- */
+
+/*
+ * A panel, not a lightbox. It takes one edge of the screen and leaves the world
+ * running beside it, because the world is the thing the visitor came for and
+ * covering it to show a paragraph would be an odd trade.
+ *
+ * Above the beacon (15) so the prompt cannot draw over it, below the veil (20)
+ * because a respawn cover has to hide everything.
+ *
+ * A sibling of `#ui`, like the beacon and for the same reason: `#ui` is
+ * `aria-hidden`, and every focusable thing in here would be reachable by Tab and
+ * invisible to a screen reader if it lived inside that layer.
+ */
+#card {
+  position: fixed;
+  inset: 0;
+  z-index: 18;
+  display: flex;
+  justify-content: flex-end;
+}
+
+#card[hidden] {
+  display: none;
+}
+
+/*
+ * The scrim. A flat wash rather than `backdrop-filter: blur()`: blurring means
+ * reading back a live WebGPU canvas every frame, which is the most expensive
+ * possible way to say "this is behind something".
+ */
+#card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 7, 12, 0.55);
+}
+
+.card__panel {
+  position: relative;
+  width: min(32rem, 100%);
+  max-height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2.5rem 2rem 3rem;
+  background: rgba(5, 7, 12, 0.94);
+  border-left: 1px solid #1d2432;
+  line-height: 1.65;
+}
+
+.card__close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-content: center;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid #1d2432;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.card__close:hover {
+  color: var(--ink);
+}
+
+.card__close:focus-visible,
+.card__panel a:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/*
+ * The card's heading is the display face; its prose is not. That split is
+ * deliberate — Amatic SC is a hand-lettered condensed display face and it is
+ * genuinely hard to read at body size, which is why the reference author uses it for labels and
+ * Nunito for anything anyone has to actually read. The card is where the real
+ * writing lives.
+ */
+.card__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.card__subtitle {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.card__subtitle[hidden],
+.card__meta[hidden],
+.card__links[hidden] {
+  display: none;
+}
+
+.card__body {
+  margin-top: 1.6rem;
+}
+
+/*
+ * Project screenshots in the panel. The lead image sits above the prose;
+ * followers sit after it. aspect-ratio holds the layout before the file
+ * arrives, so a slow image cannot reflow the prose under the reader.
+ */
+.card__figure {
+  margin: 0 0 1.2rem;
+}
+
+.card__figure img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid #1d2432;
+  border-radius: 2px;
+  background: #0a0e18;
+}
+
+.card__body p {
+  margin: 0 0 1rem;
+}
+
+/* The blurb: the one line that also has to work on the monolith face. */
+.card__lead {
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+/*
+ * Deliberately styled as a hole rather than as prose. `content/projects.js`
+ * keeps TODO markers instead of lorem ipsum because placeholder prose has a way
+ * of shipping; this is the same refusal made visible in the panel.
+ */
+.card__unwritten {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.card__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 1.6rem 0 0;
+  padding-top: 1.2rem;
+  border-top: 1px solid #1d2432;
+  font-size: 0.85rem;
+}
+
+.card__meta dt {
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  padding-top: 0.15rem;
+}
+
+.card__meta dd {
+  margin: 0;
+}
+
+.card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card__links a {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.82rem;
+  color: var(--amber);
+  text-decoration: none;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+
+.card__links a:hover {
+  color: var(--ink);
+}
+
+/* Narrow screens get a bottom sheet: a 32rem side panel is the whole phone. */
+@media (max-width: 40rem) {
+  #card {
+    align-items: flex-end;
+  }
+
+  .card__panel {
+    width: 100%;
+    max-height: 82dvh;
+    padding: 2.2rem 1.25rem 2.5rem;
+    border-left: 0;
+    border-top: 1px solid #1d2432;
+  }
+}
+
+/* ---------- fallback ---------- */
+
+#fallback {
+  position: relative;
+  z-index: 20;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+  overflow-y: auto;
+  max-height: 100dvh;
+  line-height: 1.6;
+}
+
+#fallback h1 {
+  font-size: 2rem;
+  margin: 0 0 0.5rem;
+}
+
+#fallback h2 {
+  font-size: 1rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 2rem 0 0.5rem;
+}
+
+#fallback ul {
+  padding-left: 1.1rem;
+  margin: 0;
+}
+
+#fallback a {
+  color: var(--amber);
+}
+
+.is-fallback,
+.is-fallback body {
+  overflow: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader__fill,
+  #loader,
+  .hint {
+    transition-duration: 1ms;
+  }
+}
