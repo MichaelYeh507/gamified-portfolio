@@ -132,11 +132,12 @@ body {
   opacity: 0;
 }
 
-/* Touch devices get a different instruction; the class is set by Input.js.
- * Honest since 3 Sep: there is no touch steering yet (Input.js reads keys
- * only), so the copy says so instead of promising a drag that does nothing. */
-.input-touch .hint::after {
-  content: " · best driven with a keyboard, for now";
+/* The hint is the stuck offer, and on touch it is the button (Game.js
+ * `_updateStuckHint` sets the copy per device): #ui is pointer-events none,
+ * so the hint opts back in. */
+.hint {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 /*
@@ -304,16 +305,92 @@ body {
   display: none;
 }
 
-/* Touch has no keys: the sheet says what the site needs instead of what to
- * press. Touch steering is not built yet (see .input-touch .hint above). */
-.input-touch .controls__table {
+/* Touch has no keys: the sheet shows the gestures (index.html's second
+ * table) and the foot names the pill instead of the key. Two tables and two
+ * spans rather than one rewritten by JS, so the copy is in the markup and
+ * `check-touch` can read it. The class comes from Input.js. */
+.controls__table--touch,
+.for-touch {
   display: none;
 }
 
+.input-touch .controls__table--keys,
+.input-touch .for-keys {
+  display: none;
+}
+
+.input-touch .controls__table--touch {
+  display: table;
+}
+
+.input-touch .for-touch {
+  display: inline;
+}
+
 .input-touch .controls__title::after {
-  content: " · best driven with a keyboard, for now";
+  content: " · drag to steer";
   font-size: 1rem;
   color: var(--muted);
+}
+
+/* The pills say what they are; the key chip is for a keyboard. */
+.input-touch .ui-button .key {
+  display: none;
+}
+
+/*
+ * The touch pad (`core/TouchStick.js` `TouchPad`): boost and jump as held
+ * buttons, bottom-left, the thumb's side opposite the pills. Round and big
+ * enough to hold without looking (3.8rem ≈ 61px, over the 44px floor), the
+ * pills' dark glass with the amber ring, lit while down. Touch only.
+ */
+.touch-pad {
+  position: fixed;
+  left: 1.1rem;
+  bottom: 1.1rem;
+  z-index: 16;
+  display: none;
+  gap: 0.8rem;
+  /* Under the pills' height so the two rows line up on a short screen. */
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.input-touch .touch-pad {
+  display: flex;
+}
+
+.touch-pad__button {
+  width: 3.8rem;
+  height: 3.8rem;
+  padding: 0;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: rgba(5, 7, 12, 0.82);
+  border: 1px solid rgba(255, 180, 84, 0.55);
+  border-radius: 50%;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
+}
+
+.touch-pad__button.is-down {
+  color: var(--amber);
+  border-color: var(--amber);
+  background: rgba(5, 7, 12, 0.94);
+  transform: scale(0.94);
+}
+
+.touch-pad__button:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
 }
 
 /*

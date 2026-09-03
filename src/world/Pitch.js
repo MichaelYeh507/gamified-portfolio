@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COLOR, paint, paletteU } from '../render/palette.js';
-import { pitchPlan, GOAL, BALL } from './pitchPlan.js';
+import { pitchPlan, ballLost, GOAL, BALL, RESET } from './pitchPlan.js';
 
 /**
  * The football pitch: a goal and a ball, both code-built (decision 47's
@@ -20,8 +20,12 @@ import { pitchPlan, GOAL, BALL } from './pitchPlan.js';
  *     numbers are ours (`BALL`): light enough for the bumper to loft, damped
  *     enough to roll to a stop rather than wander into the sea.
  *
- * Not built: a score, a reset when the ball leaves the island (R respawns
- * the car, not the ball — on the books), a second goal.
+ *   - **The reset** (`update`): a ball that is in the water or off the map
+ *     for `RESET.seconds` comes back to the centre spot, still — the rule is
+ *     `pitchPlan.ballLost`, and the wait is what lets a ball skip a ford.
+ *     R stays the car's.
+ *
+ * Not built: a score, a second goal.
  */
 export default class Pitch {
   constructor(game) {
@@ -29,6 +33,39 @@ export default class Pitch {
     this.plan = pitchPlan();
     this.goal = null;
     this.ball = null;
+    /** Seconds the ball has been lost for. */
+    this._lostFor = 0;
+    /** How many times it has come back (read by probes). */
+    this.resets = 0;
+  }
+
+  /** Once per tick after the physics step. */
+  update(delta) {
+    const body = this.ball?.physical?.body;
+    if (!body) return;
+    // Sleeping or not: a ball that has stopped in the water is not coming
+    // back on its own, and one height lookup a tick is nothing.
+    const t = body.translation();
+    if (ballLost(t, this.game.terrain.heightAt(t.x, t.z))) {
+      this._lostFor += delta;
+      if (this._lostFor >= RESET.seconds) this.reset();
+    } else {
+      this._lostFor = 0;
+    }
+  }
+
+  /** Back to the centre spot, upright and still. */
+  reset() {
+    const body = this.ball?.physical?.body;
+    if (!body) return;
+    const { ball } = this.plan;
+    const ground = this.game.terrain.heightAt(ball.x, ball.z);
+    body.setTranslation({ x: ball.x, y: ground + BALL.radius + 0.02, z: ball.z }, true);
+    body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    this._lostFor = 0;
+    this.resets++;
   }
 
   build() {

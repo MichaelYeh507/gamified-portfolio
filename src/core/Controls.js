@@ -36,6 +36,11 @@ export default class Controls {
 
     this.button.hidden = false;
     this.button.addEventListener('click', () => this.toggle());
+    // The scrim is the way out for a thumb (no H, no Escape): a tap outside
+    // the panel closes the modal. The launch sheet has no scrim to hit.
+    this.panel.addEventListener('click', (event) => {
+      if (this.isOpen && event.target === this.panel) this.close();
+    });
 
     game.input.on('action', (name, value) => {
       if (!value) return;

@@ -498,8 +498,18 @@ ball at Rocket League proportions and a goal three balls wide, both
 code-built, on the north shore's open ground (swept, `world/pitchPlan.js`;
 `check-pitch` is the eleventh suite). Boost into the ball and it flies.
 
-Not done yet: **touch steering** (`Input.js` reads keys only; the touch copy
-says so honestly until it exists), toasts (deferred by Michael), bridges
+**Milestone 32 — a phone can drive it** (3 September 2026, late). Touch
+steering the reference's way: the canvas is a stick anchored at the car,
+drag from it to steer, further is faster, behind it reverses, tap it to hop;
+boost and jump are held buttons; the stuck hint is the tap to get back on
+the road. `check-touch` is the twelfth suite, and the whole mapping is
+measured on the production build with synthetic touch events
+(`ROADMAP.md` → *Now*). Left for the phone pass on the live URL: a real
+thumb, the ring's radii, boot time on cellular, portrait. Same evening: the
+football comes back to its spot after three seconds in the water or off
+the map (`pitchPlan.ballLost`, guarded in `check-pitch`).
+
+Not done yet: toasts (deferred by Michael), bridges
 (Michael has offered assets), the playground (designated cut), the foliage
 sprite material, audio, the `availability` line when Michael writes it.
 

@@ -63,6 +63,33 @@ export const BALL = Object.freeze({
 });
 
 /**
+ * When the ball comes back. R respawns the car and nothing else (the
+ * reference's `unstuck` is the car's), so the ball has its own rule:
+ * **gone is wet or off the map, and it has to stay gone** — a ball that
+ * skips through a ford on its way somewhere is still in play. `Pitch.update`
+ * counts the seconds and puts it back at the centre spot, still.
+ */
+export const RESET = Object.freeze({
+  /** How long the ball must be lost before it comes back. */
+  seconds: 3,
+  /** The ball is off the map beyond this on either axis (the terrain's half size). */
+  halfSize: 75,
+  /** Ground under the ball at or below this is water. */
+  waterSurface: -0.3,
+});
+
+/**
+ * Is the ball lost right now? Pure: `ground` is the terrain height under
+ * the ball, passed in so this file stays arithmetic and `check-pitch` can
+ * prove the rule on numbers.
+ */
+export function ballLost({ x, z }, ground, reset = RESET) {
+  if (!Number.isFinite(x) || !Number.isFinite(z)) return true;
+  if (Math.abs(x) > reset.halfSize || Math.abs(z) > reset.halfSize) return true;
+  return ground <= reset.waterSurface;
+}
+
+/**
  * @returns {{
  *   center: {x:number, z:number},
  *   goal: {x:number, z:number, heading:number},

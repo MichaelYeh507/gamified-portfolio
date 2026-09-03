@@ -36,8 +36,8 @@ file by file, and several of its mechanisms were ported into `src/` — among
 them the flat toon material, the periodic perlin and voronoi generators, the
 wheel tracks, the leaves simulation, the wind lines, the rain lines and
 splashes, the boost trails, the suspension jump and the auto-flip, the
-day-cycle and weather shapes, the input filters, and the areas' motion
-patterns. Where a port is line for line, the source file is named in the
+day-cycle and weather shapes, the input filters, the touch stick and its
+ring, and the areas' motion patterns. Where a port is line for line, the source file is named in the
 comment above it. No asset from that repository is redistributed here.
 
 MIT License. Copyright (c) 2025 Bruno Simon.

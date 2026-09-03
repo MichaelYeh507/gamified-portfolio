@@ -1337,24 +1337,34 @@ can be decided during Phase 3 authoring rather than re-authored after it.
 
 ---
 
-## 🟡 24. There is no touch steering at all
+## ✅ ~~24. There is no touch steering at all~~ — fixed 3 Sep, late
 
 **Where:** `src/core/Input.js`. Found 3 Sep, measured before the phone pass
 rather than on it.
 
-`Input` reads keys and a `pointerdown` that only flips the `input-touch` class.
-Nothing maps a touch to `forward`/`left`/`right`/`boost`/`jump`, so on a phone
-the car cannot move — and until 3 Sep the launch sheet and the stuck hint told a
-touch visitor to "drag to steer", a promise nothing kept. The copy is honest
-now (*"best driven with a keyboard, for now"*, `styles.css` `.input-touch`).
+`Input` read keys and a `pointerdown` that only flipped the `input-touch`
+class. Nothing mapped a touch to `forward`/`left`/`right`/`boost`/`jump`, so
+on a phone the car could not move — and until 3 Sep the launch sheet and the
+stuck hint told a touch visitor to "drag to steer", a promise nothing kept.
 
-**Not fixed, by the deploy-first call.** The fix is a virtual stick on the
-canvas mapped onto the same `actions` object (the reference's `Inputs.js` touch half is the
-mechanism reference), plus boost/jump buttons and the copy back to "drag to
-steer" the day it is true. First item after the site is live
-(`ROADMAP.md` → *Carried into the next session*, 0b). What the phone pass can
-still judge without it: boot time on a mobile connection, the fallback on a
-browser without WebGPU or WebGL2, the plaza in portrait (23), the cards.
+**Fixed the same day, after the deploy.** `core/TouchStick.js` is the
+reference's touch mechanism (`Inputs/Nipple.js`): a ring anchored at the car
+in the world, the finger's ground point read against the car every tick,
+distance as the throttle and bearing as the steer, the rear 90° reversing, a
+tap as a hop; `render/StickRing.js` draws it with the reference's shader;
+boost and jump are held buttons (`#touch-pad`); the stuck hint is the touch
+unstuck button; the copy says "drag to steer" again because it is true. The
+maths is pure (`core/stickMath.js`) and `check-touch` is the twelfth suite.
+Measured on the production build with synthetic touch events: forward,
+right, reverse, the tap-hop and both buttons all do what the sheet says
+(`ROADMAP.md` → *Now*). Left for the phone pass: a real thumb, the radii,
+portrait, the WebGL2 fallback.
+
+**A bug the fix's own probe found:** Chrome throws `NotFoundError` from
+`setPointerCapture` for a pointer id it is not tracking, and the throw left
+the stick claimed with no finger on it, re-reading a stale point every tick.
+Guarded (the capture is in a try), and reproduced in the suite with a stub
+that throws.
 
 ---
 

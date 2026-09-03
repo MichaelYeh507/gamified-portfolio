@@ -147,7 +147,13 @@ export default class Input extends Events {
     this.setFilters(filters);
 
     this.mode = null;
-    this._setMode('keyboard');
+    /**
+     * The first mode is guessed from the device rather than waited for: a
+     * phone showed "Arrow keys or WASD" until its first tap flipped the
+     * class, and the launch sheet is up before that tap. Coarse pointer and
+     * no hover is a touch screen; the first key or mouse press corrects it.
+     */
+    this._setMode(Input.prefersTouch() ? 'touch' : 'keyboard');
 
     this._onKeyDown = this._onKeyDown.bind(this);
     this._onKeyUp = this._onKeyUp.bind(this);
@@ -190,6 +196,35 @@ export default class Input extends Events {
       if (this.filters.has(category)) return true;
     }
     return false;
+  }
+
+  /** Is this a touch screen with no mouse? Read once; the events refine it. */
+  static prefersTouch() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  }
+
+  /**
+   * The touch surfaces' way in — the stick (`TouchStick`) and the buttons
+   * (`TouchPad`) write the same `actions` the keys do, through the same
+   * filter and the same edge events, so nothing downstream knows which it
+   * was. `value` may be fractional: the stick is analog and `Car.control`
+   * scales by it; a key is 1.
+   *
+   * Filtered like a keydown (a stick held across a mode change is silenced
+   * by the filter until it is lifted, and `_onBlur` has already zeroed it),
+   * and the falling edge is never filtered, like a keyup.
+   */
+  set(name, value) {
+    if (!(name in this.actions)) throw new Error(`input: no action "${name}"`);
+    if (value === 0) {
+      this._end(name);
+      return;
+    }
+    if (!this.allows(name)) return;
+    const was = this.actions[name];
+    this.actions[name] = value;
+    if (was === 0) this.emit('action', name, value);
   }
 
   _setMode(mode) {

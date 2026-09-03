@@ -10,6 +10,9 @@ import { updateTweens } from './tween.js';
 import Veil from './Veil.js';
 import Controls from './Controls.js';
 import FastTravel from './FastTravel.js';
+import TouchStick, { TouchPad } from './TouchStick.js';
+import { flag } from './flags.js';
+import StickRing from '../render/StickRing.js';
 
 import DayCycles from '../cycles/DayCycles.js';
 import YearCycles from '../cycles/YearCycles.js';
@@ -537,6 +540,19 @@ export default class Game {
     this.controls = new Controls(this);
     // The fast-travel map, behind `M` and its button.
     this.fastTravel = new FastTravel(this);
+    // Touch: the stick on the canvas, anchored at the car (`core/TouchStick.js`),
+    // its ring in the world, and the boost / jump buttons. `#touch` lets a
+    // mouse drive the stick for a desk test.
+    this.stickRing = new StickRing(this.scene);
+    this.touchStick = new TouchStick({
+      input: this.input,
+      surface: this.renderer.domElement,
+      camera: this.camera,
+      car: this.car,
+      ring: this.stickRing,
+      anyPointer: flag('touch'),
+    });
+    this.touchPad = new TouchPad(this.input);
 
     // The first application of the mode, now that everything it writes exists.
     // `this.mode` has been `intro` since the top of this method; the `Input`
@@ -682,6 +698,9 @@ export default class Game {
       (delta) => {
         this.viewport.sample(delta);
         updateTweens(delta);
+        // The finger is re-read against where the car is now, before the
+        // car reads the input.
+        this.touchStick.update(delta);
       },
       TICK.INPUT
     );
@@ -728,6 +747,8 @@ export default class Game {
         this.car.updateFlip(elapsed);
         this.car.updateWater(delta, this.terrain);
         this._updateStuckHint();
+        // The ball comes back when it has left the island (`Pitch.update`).
+        this.pitch.update(delta);
 
         // The boost trails, after the visual has its interpolated pose. The reference's
         // trigger verbatim (`VisualVehicle.js:521`): going forward, boosting,
@@ -900,7 +921,19 @@ export default class Game {
     if (!el) return;
 
     if (stuck) {
-      el.textContent = 'Stuck? Press R to get back on the road';
+      // A touch screen has no R: the offer is the button (the reference's
+      // `unstuck` touch button, `InteractiveButtons`). A click takes it on
+      // any device; the copy just says which.
+      el.textContent =
+        this.input.mode === 'touch'
+          ? 'Stuck? Tap here to get back on the road'
+          : 'Stuck? Press R to get back on the road';
+      if (!this._stuckHintBound) {
+        this._stuckHintBound = true;
+        el.addEventListener('click', () => {
+          if (this._stuckHint) this._recover();
+        });
+      }
       el.hidden = false;
       // Next frame, or the transition has nothing to animate from.
       requestAnimationFrame(() => el.classList.remove('is-fading'));

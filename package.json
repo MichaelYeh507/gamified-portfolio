@@ -21,7 +21,8 @@
     "check-leaves": "node tools/check-leaves.mjs",
     "check-site": "node tools/check-site.mjs",
     "check-pitch": "node tools/check-pitch.mjs",
-    "check": "npm run palette:check && npm run check-names && npm run check-pipeline && npm run check-loader && npm run check-prep && npm run check-career && npm run check-contact && npm run check-wayfinding && npm run check-leaves && npm run check-site && npm run check-pitch",
+    "check-touch": "node tools/check-touch.mjs",
+    "check": "npm run palette:check && npm run check-names && npm run check-pipeline && npm run check-loader && npm run check-prep && npm run check-career && npm run check-contact && npm run check-wayfinding && npm run check-leaves && npm run check-site && npm run check-pitch && npm run check-touch",
     "sweep-basin": "node tools/sweep-basin.mjs",
     "check-loader": "node tools/check-loader.mjs",
     "compress": "node tools/compress.mjs"

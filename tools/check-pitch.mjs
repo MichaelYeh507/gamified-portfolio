@@ -10,8 +10,8 @@
  * the ball and the car. **Every guard is made to fail once** (the standing
  * rule). Exits 1 on any mismatch.
  */
-const { pitchPlan, PITCH, GOAL, BALL } = await import('../src/world/pitchPlan.js');
-const { heightAt, beachRadius, WATER_SURFACE } = await import('../src/world/Terrain.js');
+const { pitchPlan, ballLost, PITCH, GOAL, BALL, RESET } = await import('../src/world/pitchPlan.js');
+const { heightAt, beachRadius, WATER_SURFACE, HALF } = await import('../src/world/Terrain.js');
 const { distanceToRoutes, ROAD } = await import('../src/world/wayfindingPlan.js');
 const { default: areaDefs } = await import('../src/content/areas.js');
 
@@ -66,6 +66,23 @@ console.log('\nthe goal and the ball:');
   const dGoalBall = Math.hypot(plan.goal.x - plan.ball.x, plan.goal.z - plan.ball.z);
   check('the ball starts in front of the goal, inside the patch', dGoalBall > GOAL.depth + BALL.radius && dGoalBall <= PITCH.radius, dGoalBall.toFixed(2));
   check('the clearing covers the patch and the goal', PITCH.clearing >= PITCH.radius + GOAL.depth);
+}
+
+console.log('\nthe reset (ballLost, on the real ground):');
+{
+  const at = (x, z) => ballLost({ x, z }, heightAt(x, z));
+  check('the reset reads the terrain\'s water line and half size', RESET.waterSurface === WATER_SURFACE && RESET.halfSize === HALF);
+  check('the centre spot is not lost', !at(plan.ball.x, plan.ball.z));
+  check('the goal mouth is not lost', !at(plan.goal.x, plan.goal.z));
+  check('the whole patch is not lost', plan.ring.every((p) => !at(p.x, p.z)));
+  // Straight out from the pitch past the beach: the sea.
+  const theta = Math.atan2(plan.center.z, plan.center.x);
+  const sea = beachRadius(theta) + 6;
+  check('the sea past the beach is lost', at(Math.cos(theta) * sea, Math.sin(theta) * sea));
+  check('off the map is lost', at(HALF + 1, 0) && at(0, -HALF - 1));
+  check('a non-finite position is lost (a body that blew up)', ballLost({ x: NaN, z: 0 }, 0));
+  check('dry ground at the water line is not lost, wet ground is (guard made to fail)', !ballLost({ x: 0, z: 0 }, WATER_SURFACE + 0.01) && ballLost({ x: 0, z: 0 }, WATER_SURFACE));
+  check('the wait lets a ball skip a ford (1..6 s)', RESET.seconds >= 1 && RESET.seconds <= 6);
 }
 
 console.log(`\ncheck-pitch: ${failed ? `${failed} FAILED` : 'ok'}`);

@@ -71,6 +71,18 @@
          drawn from the island's own terrain data and turned to the screen.
          M toggles; a pin is a real button. -->
     <button id="map-button" class="ui-button map-button" type="button" aria-label="Map" aria-expanded="false" hidden>map <span class="key" aria-hidden="true">M</span></button>
+
+    <!-- Touch (`core/TouchStick.js`, 3 Sep): the canvas itself is the stick,
+         anchored at the car, and these two are the verbs a thumb cannot
+         drag: held buttons, bottom-left, opposite the pills. Shown only
+         under `.input-touch`. The reference's touch build has an interact and
+         an unstuck button and no boost or jump (the reference's tap is the
+         hop); ours: interact is the beacon, unstuck is the hint, and boost
+         and jump are Michael's ask. -->
+    <div id="touch-pad" class="touch-pad">
+      <button class="touch-pad__button touch-pad__button--boost" type="button" data-action="boost" aria-label="Boost, hold">boost</button>
+      <button class="touch-pad__button touch-pad__button--jump" type="button" data-action="jump" aria-label="Jump, hold">jump</button>
+    </div>
     <!-- Centred and paused, a menu you click a place on (Michael, 2 Sep: "i
          want the users to feel like they can click on the map and teleport,
          so that should be centered and opened"). -->
@@ -88,7 +100,7 @@
     <div id="controls" class="controls" role="dialog" aria-modal="false" aria-labelledby="controls-title" hidden>
       <div class="controls__panel">
         <h2 id="controls-title" class="controls__title">Controls</h2>
-        <table class="controls__table">
+        <table class="controls__table controls__table--keys">
           <tbody>
             <tr><td><span class="key">W A S D</span> or <span class="key">arrows</span></td><td>drive</td></tr>
             <tr><td><span class="key">shift</span></td><td>boost</td></tr>
@@ -100,8 +112,20 @@
             <tr><td><span class="key">H</span></td><td>these controls</td></tr>
           </tbody>
         </table>
-        <p class="controls__foot controls__foot--launch">Press <span class="key">H</span> any time to see these again</p>
-        <p class="controls__foot controls__foot--modal">Press <span class="key">H</span> or <span class="key">esc</span> to keep driving</p>
+        <!-- The touch sheet: the stick is the canvas (`core/stickMath.js`
+             says why it reads the way it does), so the verbs are gestures. -->
+        <table class="controls__table controls__table--touch">
+          <tbody>
+            <tr><td>drag from the car</td><td>steer, further is faster</td></tr>
+            <tr><td>drag behind it</td><td>reverse</td></tr>
+            <tr><td>tap the car</td><td>hop</td></tr>
+            <tr><td>hold <span class="key">boost</span> <span class="key">jump</span></td><td>boost, jump</td></tr>
+            <tr><td>tap the glowing pill</td><td>interact</td></tr>
+            <tr><td>stuck? tap the hint</td><td>back on the road</td></tr>
+          </tbody>
+        </table>
+        <p class="controls__foot controls__foot--launch"><span class="for-keys">Press <span class="key">H</span> any time</span><span class="for-touch">Tap <span class="key">controls</span> any time</span> to see these again</p>
+        <p class="controls__foot controls__foot--modal"><span class="for-keys">Press <span class="key">H</span> or <span class="key">esc</span></span><span class="for-touch">Tap <span class="key">controls</span> or outside</span> to keep driving</p>
       </div>
     </div>
 

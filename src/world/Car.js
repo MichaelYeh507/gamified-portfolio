@@ -637,6 +637,18 @@ export default class Car {
     return v.x * _forward.x + v.y * _forward.y + v.z * _forward.z;
   }
 
+  /**
+   * The chassis' yaw in the ground plane as `atan2(forward.z, forward.x)` —
+   * the reference's `Player.rotationY`, read by the touch stick, whose
+   * bearings use the same convention (`core/stickMath.js`).
+   */
+  headingXZ() {
+    const q = this.body.rotation();
+    _quat.set(q.x, q.y, q.z, q.w);
+    _forward.set(0, 0, 1).applyQuaternion(_quat);
+    return Math.atan2(_forward.z, _forward.x);
+  }
+
   control(input) {
     this.speed = this._forwardSpeed();
 
@@ -697,6 +709,10 @@ export default class Car {
     /** Read by the view's speed lines and the boost trails. */
     this.boosting = boosting === 1;
 
+    // `drive` is ±1 from a key and anything in between from the touch stick
+    // (the reference's `accelerating = progress³`, `Player.js:583`), so the
+    // force scales by it: a thumb resting near the car creeps, a thumb at
+    // the ring's edge is the key.
     const drive = input.drive;
     let engine = 0;
     let brake = IDLE_BRAKE * this.brakeScale;
@@ -707,7 +723,7 @@ export default class Car {
         engine = 0;
         brake = REVERSE_AS_BRAKE * this.brakeScale;
       } else {
-        engine = force;
+        engine = force * drive;
         brake = 0;
       }
     } else if (drive < 0) {
@@ -718,7 +734,7 @@ export default class Car {
         // The same force curve negated, with no reverse penalty. Our 0.55 made
         // backing out of a wedge frustrating — the exact moment the player most
         // needs authority.
-        engine = -force;
+        engine = force * drive;
         brake = 0;
       }
     }
