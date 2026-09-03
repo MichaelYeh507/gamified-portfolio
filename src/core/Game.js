@@ -747,7 +747,8 @@ export default class Game {
         this.car.updateFlip(elapsed);
         this.car.updateWater(delta, this.terrain);
         this._updateStuckHint();
-        // The ball comes back when it has left the island (`Pitch.update`).
+        // The bump loft, and a ball that has fallen off the world is parked
+        // (`Pitch.update`); it comes back only through the prompt by the goal.
         this.pitch.update(delta);
 
         // The boost trails, after the visual has its interpolated pose. The reference's

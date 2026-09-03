@@ -152,6 +152,25 @@ console.log('\nthe static versions:');
   check('staticUrl itself resolves', existsSync('src/core/staticUrl.js'));
 }
 
+console.log('\nthe pixel budget (Viewport.pixelPolicy, from the phone pass):');
+{
+  const { pixelPolicy, PIXELS } = await import('../src/core/Viewport.js');
+  const at = (width, height, devicePixelRatio) => pixelPolicy({ width, height, devicePixelRatio });
+  const near = (a, b, eps = 0.02) => Math.abs(a - b) <= eps;
+  check('the ratio cap is the reference\'s 2', PIXELS.maxRatio === 2);
+  const phone = at(390, 844, 3);
+  check('a DPR-3 phone renders at ratio 2 (was 1.5)', near(phone.base, 2), phone.base.toFixed(2));
+  check('and its adaptive floor keeps ~1 MP (ratio ≥ 1.7, was 0.9)', phone.base * phone.floor >= 1.7, (phone.base * phone.floor).toFixed(2));
+  const desk = at(1920, 1080, 2);
+  check('a 1080p desktop at DPR 2 stays near 1.5 (the 4.5 MP ceiling)', near(desk.base, 1.47, 0.03), desk.base.toFixed(2));
+  check('and can still step down under load (floor < 0.75)', desk.floor < 0.75 && desk.floor >= PIXELS.minScale, desk.floor.toFixed(2));
+  const plain = at(1366, 768, 1);
+  check('a 1x laptop is ratio 1, floor above 0.6 (guard made to fail)', plain.base === 1 && plain.floor > PIXELS.minScale && plain.floor < 1, plain.floor.toFixed(2));
+  check('the floor never exceeds 1', at(320, 480, 3).floor <= 1 && at(200, 200, 1).floor <= 1);
+  check('a bad DPR reads as 1', at(1000, 600, NaN).base === 1 && at(1000, 600, 0).base === 1);
+  check('pixels never exceed the ceiling', [at(3840, 2160, 2), at(2560, 1440, 2), at(1920, 1080, 1.5)].every((p) => 1 >= 0 && p.base <= 2) && 3840 * 2160 * at(3840, 2160, 2).base ** 2 <= PIXELS.max * 1.001);
+}
+
 console.log('\nthe host config:');
 {
   check('public/_headers exists', existsSync('public/_headers'));

@@ -10,7 +10,7 @@
  * the ball and the car. **Every guard is made to fail once** (the standing
  * rule). Exits 1 on any mismatch.
  */
-const { pitchPlan, ballLost, PITCH, GOAL, BALL, RESET } = await import('../src/world/pitchPlan.js');
+const { pitchPlan, PITCH, GOAL, BALL, BUMP, BUTTON, RESET_PROMPT } = await import('../src/world/pitchPlan.js');
 const { heightAt, beachRadius, WATER_SURFACE, HALF } = await import('../src/world/Terrain.js');
 const { distanceToRoutes, ROAD } = await import('../src/world/wayfindingPlan.js');
 const { default: areaDefs } = await import('../src/content/areas.js');
@@ -63,26 +63,41 @@ console.log('\nthe goal and the ball:');
   check('the net cords are denser than the ball', GOAL.mesh < BALL.radius && GOAL.mesh > BALL.radius * 0.3, `${GOAL.mesh} against ${BALL.radius}`);
   check('the ball is lighter than the car and heavier than a leaf', BALL.mass > 0.02 && BALL.mass < 2.5);
   check('the ball bounces but does not fly away', BALL.restitution > 0.3 && BALL.restitution < 0.8 && BALL.linearDamping > 0.2);
+  check('the ball is floaty but still falls (gravity scale 0.15..0.8)', BALL.gravityScale >= 0.15 && BALL.gravityScale <= 0.8, `${BALL.gravityScale}`);
   const dGoalBall = Math.hypot(plan.goal.x - plan.ball.x, plan.goal.z - plan.ball.z);
   check('the ball starts in front of the goal, inside the patch', dGoalBall > GOAL.depth + BALL.radius && dGoalBall <= PITCH.radius, dGoalBall.toFixed(2));
   check('the clearing covers the patch and the goal', PITCH.clearing >= PITCH.radius + GOAL.depth);
 }
 
-console.log('\nthe reset (ballLost, on the real ground):');
+console.log('\nthe reset prompt (beside the goal, on the real ground):');
 {
-  const at = (x, z) => ballLost({ x, z }, heightAt(x, z));
-  check('the reset reads the terrain\'s water line and half size', RESET.waterSurface === WATER_SURFACE && RESET.halfSize === HALF);
-  check('the centre spot is not lost', !at(plan.ball.x, plan.ball.z));
-  check('the goal mouth is not lost', !at(plan.goal.x, plan.goal.z));
-  check('the whole patch is not lost', plan.ring.every((p) => !at(p.x, p.z)));
-  // Straight out from the pitch past the beach: the sea.
-  const theta = Math.atan2(plan.center.z, plan.center.x);
-  const sea = beachRadius(theta) + 6;
-  check('the sea past the beach is lost', at(Math.cos(theta) * sea, Math.sin(theta) * sea));
-  check('off the map is lost', at(HALF + 1, 0) && at(0, -HALF - 1));
-  check('a non-finite position is lost (a body that blew up)', ballLost({ x: NaN, z: 0 }, 0));
-  check('dry ground at the water line is not lost, wet ground is (guard made to fail)', !ballLost({ x: 0, z: 0 }, WATER_SURFACE + 0.01) && ballLost({ x: 0, z: 0 }, WATER_SURFACE));
-  check('the wait lets a ball skip a ford (1..6 s)', RESET.seconds >= 1 && RESET.seconds <= 6);
+  const p = plan.resetPrompt;
+  check('stands on dry flat ground', heightAt(p.x, p.z) > WATER_SURFACE + 0.15 && Math.abs(heightAt(p.x, p.z)) <= 0.05, heightAt(p.x, p.z).toFixed(3));
+  check('is inside the map', Math.abs(p.x) < HALF && Math.abs(p.z) < HALF);
+  const dGoal = Math.hypot(p.x - plan.goal.x, p.z - plan.goal.z);
+  check('is beside the goal, outside its width (guard made to fail)', dGoal > GOAL.width / 2 && dGoal < GOAL.width / 2 + RESET_PROMPT.side + RESET_PROMPT.ahead + 0.01, dGoal.toFixed(2));
+  // On the mouth's side of the goal line, not behind the net.
+  const mouth = { x: Math.sin(plan.goal.heading), z: Math.cos(plan.goal.heading) };
+  const ahead = (p.x - plan.goal.x) * mouth.x + (p.z - plan.goal.z) * mouth.z;
+  check('is in front of the goal line, not behind the net', ahead > 0 && ahead < GOAL.depth, ahead.toFixed(2));
+  check('its reach covers the walk from the ball spot side (radius 5..12)', RESET_PROMPT.radius >= 5 && RESET_PROMPT.radius <= 12);
+  check('the label says what it does', /reset/i.test(RESET_PROMPT.label) && /ball/i.test(RESET_PROMPT.label));
+  const buttonTop = BUTTON.pedestal[1] + BUTTON.cap[1] + BUTTON.ring[1] + BUTTON.button[1];
+  check('the pill floats above the button, within reach of it', RESET_PROMPT.height > buttonTop && RESET_PROMPT.height < buttonTop + 1, `${RESET_PROMPT.height} over ${buttonTop.toFixed(2)}`);
+  check('the button is waist-high to the car, not a wall (0.8..1.6)', buttonTop > 0.8 && buttonTop < 1.6);
+  check('the button sits inside its ring, the ring inside the cap', BUTTON.button[0] < BUTTON.ring[0] && BUTTON.ring[0] * 2 < BUTTON.pedestal[0] + BUTTON.cap[0] * 2);
+}
+
+console.log('\nthe bump loft:');
+{
+  check('a nudge lifts, a boosted hit flies (loft 1..6 m/s)', BUMP.loft >= 1 && BUMP.loft <= 6, `${BUMP.loft}`);
+  check('the scale brackets 1 and the floor is below the ceiling', BUMP.scale[0] < 1 && BUMP.scale[1] >= 1 && BUMP.scale[0] < BUMP.scale[1]);
+  check('a resting touch is not a bump (minSpeed > 0), full loft under boost cruise', BUMP.minSpeed > 0 && BUMP.fullSpeed > BUMP.minSpeed && BUMP.fullSpeed <= 40);
+  check('one kick per contact, not sixty a second (cooldown 0.2..1 s)', BUMP.cooldown >= 0.2 && BUMP.cooldown <= 1);
+  // Under the ball's own gravity a full loft hangs long enough to get under.
+  const g = 9.81 * BALL.gravityScale;
+  const hang = (2 * BUMP.loft) / g;
+  check('a full loft hangs over a second (guard made to fail)', hang > 1 && hang < 6, `${hang.toFixed(2)} s`);
 }
 
 console.log(`\ncheck-pitch: ${failed ? `${failed} FAILED` : 'ok'}`);

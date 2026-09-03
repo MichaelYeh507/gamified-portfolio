@@ -507,7 +507,17 @@ measured on the production build with synthetic touch events
 (`ROADMAP.md` → *Now*). Left for the phone pass on the live URL: a real
 thumb, the ring's radii, boot time on cellular, portrait. Same evening: the
 football comes back to its spot after three seconds in the water or off
-the map (`pitchPlan.ballLost`, guarded in `check-pitch`).
+the map. Then, on Michael's drive, that became a prompt instead: a beacon
+beside the goal, "Reset the ball", and nothing resets on its own; the
+prompt floats over a code-built pedestal with a glowing amber button, and
+a car that bumps the ball kicks it into the air (the ball falls at a
+quarter of the car's gravity), which is the air dribble. From Michael's
+first phone look: the canvas was rendering at 0.9 device pixels per CSS
+pixel on a phone (a desktop-tuned pixel-ratio policy) and is now on a
+pixel budget with the reference's cap of 2 (`KNOWN-ISSUES.md` 28); the
+launch sheet stays up 20 s instead of 9. And the ball is floaty (a 0.6
+gravity scale, its own body's) so a boosted car can get under it for an
+air dribble.
 
 Not done yet: toasts (deferred by Michael), bridges
 (Michael has offered assets), the playground (designated cut), the foliage

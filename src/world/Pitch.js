@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COLOR, paint, paletteU } from '../render/palette.js';
-import { pitchPlan, ballLost, GOAL, BALL, RESET } from './pitchPlan.js';
+import { pitchPlan, GOAL, BALL, BUMP, BUTTON, RESET_PROMPT } from './pitchPlan.js';
 
 /**
  * The football pitch: a goal and a ball, both code-built (decision 47's
@@ -20,38 +20,73 @@ import { pitchPlan, ballLost, GOAL, BALL, RESET } from './pitchPlan.js';
  *     numbers are ours (`BALL`): light enough for the bumper to loft, damped
  *     enough to roll to a stop rather than wander into the sea.
  *
- *   - **The reset** (`update`): a ball that is in the water or off the map
- *     for `RESET.seconds` comes back to the centre spot, still — the rule is
- *     `pitchPlan.ballLost`, and the wait is what lets a ball skip a ford.
- *     R stays the car's.
+ *   - **The reset** is a prompt beside the goal (`RESET_PROMPT`, a beacon
+ *     like the boards' and the contact links'): interact and the ball is
+ *     back at the centre spot, still. It was a 3 s timer on wet ground for
+ *     an hour; Michael wanted it asked for ("only if we interact with a
+ *     reset prompt next to goal"), so nothing resets on its own. R stays
+ *     the car's. The one thing `update` still does is stop a ball that has
+ *     left the map falling forever: below `VOID_Y` it is parked asleep
+ *     where it is, until the prompt brings it back.
  *
  * Not built: a score, a second goal.
  */
+
+/** Below this the ball is off the world and falling through nothing. */
+const VOID_Y = -40;
 export default class Pitch {
   constructor(game) {
     this.game = game;
     this.plan = pitchPlan();
     this.goal = null;
     this.ball = null;
-    /** Seconds the ball has been lost for. */
-    this._lostFor = 0;
     /** How many times it has come back (read by probes). */
     this.resets = 0;
+    /** The reset prompt's beacon, and the button it floats over. */
+    this.prompt = null;
+    this.button = null;
+    this._bumpCooldown = 0;
+    /** How many bumps have lofted the ball (read by probes). */
+    this.bumps = 0;
   }
 
-  /** Once per tick after the physics step. */
+  /** Once per tick after the physics step: the bump loft and the void safety. */
   update(delta) {
     const body = this.ball?.physical?.body;
     if (!body) return;
-    // Sleeping or not: a ball that has stopped in the water is not coming
-    // back on its own, and one height lookup a tick is nothing.
+    this._bumpCooldown = Math.max(0, this._bumpCooldown - delta);
+    this._loftOnBump();
+    if (body.isSleeping()) return;
     const t = body.translation();
-    if (ballLost(t, this.game.terrain.heightAt(t.x, t.z))) {
-      this._lostFor += delta;
-      if (this._lostFor >= RESET.seconds) this.reset();
-    } else {
-      this._lostFor = 0;
+    if (t.y < VOID_Y) {
+      body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+      body.setGravityScale(0, true);
+      body.sleep();
     }
+  }
+
+  /** `BUMP`: a car in contact with the ball kicks it upward, once per cooldown. */
+  _loftOnBump() {
+    if (this._bumpCooldown > 0) return;
+    const carBody = this.game.car.body;
+    const v = carBody.linvel();
+    const speed = Math.hypot(v.x, v.y, v.z);
+    if (speed < BUMP.minSpeed) return;
+    const ballCollider = this.ball.physical.colliders[0];
+    const world = this.game.physics.world;
+    let touching = false;
+    for (let i = 0, n = carBody.numColliders(); i < n && !touching; i++) {
+      world.contactPair(carBody.collider(i), ballCollider, (manifold) => {
+        if (manifold.numContacts() > 0) touching = true;
+      });
+    }
+    if (!touching) return;
+    const scale = Math.min(BUMP.scale[1], Math.max(BUMP.scale[0], speed / BUMP.fullSpeed));
+    const body = this.ball.physical.body;
+    body.applyImpulse({ x: 0, y: body.mass() * BUMP.loft * scale, z: 0 }, true);
+    this._bumpCooldown = BUMP.cooldown;
+    this.bumps++;
   }
 
   /** Back to the centre spot, upright and still. */
@@ -64,13 +99,66 @@ export default class Pitch {
     body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
     body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     body.setAngvel({ x: 0, y: 0, z: 0 }, true);
-    this._lostFor = 0;
+    // Gravity back on, in case the void safety switched it off.
+    body.setGravityScale(BALL.gravityScale, true);
     this.resets++;
+  }
+
+  /** The prompt beside the goal, and the button under it. */
+  _buildPrompt() {
+    const { resetPrompt } = this.plan;
+    const ground = this.game.terrain.heightAt(resetPrompt.x, resetPrompt.z);
+
+    // The button (`BUTTON`): pedestal, cap, ring, amber button, one mesh.
+    const [pw, ph, pd] = BUTTON.pedestal;
+    const [overhang, capH] = BUTTON.cap;
+    const [br, bh] = BUTTON.button;
+    const [rr, rh] = BUTTON.ring;
+    const parts = [];
+    const part = (geometry, color) => {
+      paint(geometry, color);
+      parts.push(geometry);
+    };
+    const pedestal = new THREE.BoxGeometry(pw, ph, pd);
+    pedestal.translate(0, ph / 2, 0);
+    part(pedestal, COLOR.rockDark);
+    const cap = new THREE.BoxGeometry(pw + overhang * 2, capH, pd + overhang * 2);
+    cap.translate(0, ph + capH / 2, 0);
+    part(cap, COLOR.rock);
+    const ring = new THREE.CylinderGeometry(rr, rr, rh, 24);
+    ring.translate(0, ph + capH + rh / 2, 0);
+    part(ring, COLOR.white);
+    const button = new THREE.CylinderGeometry(br, br * 1.06, bh, 24);
+    button.translate(0, ph + capH + rh + bh / 2, 0);
+    part(button, COLOR.amber);
+    const merged = mergeGeometries(parts, false);
+    for (const g of parts) g.dispose();
+    const model = new THREE.Mesh(merged, this.game.contentMaterial);
+    model.name = 'reset-button';
+    const top = ph + capH + rh + bh;
+    this.button = this.game.objects.add(
+      { model, updateMaterials: false },
+      {
+        type: 'fixed',
+        position: [resetPrompt.x, ground, resetPrompt.z],
+        friction: 0.4,
+        restitution: 0.2,
+        colliders: [{ shape: 'cuboid', parameters: [pw / 2 + overhang, top / 2, pd / 2 + overhang], position: [0, top / 2, 0] }],
+      }
+    );
+
+    this.prompt = this.game.beacons.create({
+      position: [resetPrompt.x, ground + RESET_PROMPT.height, resetPrompt.z],
+      label: RESET_PROMPT.label,
+      radius: RESET_PROMPT.radius,
+      onInteract: () => this.reset(),
+    });
   }
 
   build() {
     this._buildGoal();
     this._buildBall();
+    this._buildPrompt();
   }
 
   _buildGoal() {
@@ -189,6 +277,7 @@ export default class Pitch {
         restitution: BALL.restitution,
         linearDamping: BALL.linearDamping,
         angularDamping: BALL.angularDamping,
+        gravityScale: BALL.gravityScale,
         sleeping: true,
         colliders: [{ shape: 'ball', parameters: [r] }],
       }

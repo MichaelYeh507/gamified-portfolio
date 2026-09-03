@@ -1474,6 +1474,34 @@ spends an afternoon improving code that is about to go.
 
 ---
 
+## ✅ ~~28. A phone rendered at 0.9 device pixels per CSS pixel~~ — fixed 3 Sep, late, from Michael's phone
+
+**Where:** `src/core/Viewport.js`, the adaptive-DPR policy. Michael, from the
+live site on his phone: "the models and images are kind of low graphics for
+some reason".
+
+The policy capped the pixel ratio at 1.5 and let the frame-rate stepper
+walk the scale down to 0.6 of that when the mean frame rate over a 4 s
+window fell under 30 fps. Both numbers were chosen on a desktop, where
+1920 × 1080 at 1.5 is 4.7 million pixels a frame. On a DPR-3 phone the cap
+alone threw away half the screen's resolution from the first frame, and a
+slow start — a 4 MB boot on cellular, physics WASM decoding from base64
+(25) — is exactly a sub-30 window, so the stepper took it to **0.9 device
+pixels per CSS pixel**: about 350 pixels across a 390-point screen, then
+upscaled. The board images (1024 wide, mipmapped, anisotropy 4) and the
+models were sharp; the canvas was not. The reference caps at 2 and never
+scales (`Viewport.js:24`).
+
+**Fixed: pixels are the budget, not the ratio.** `pixelPolicy` sets the
+base ratio from the reference's cap of 2 and a ceiling of 4.5 MP a frame,
+and floors the adaptive scale so a frame never drops under 1.0 MP. A
+390 × 844 phone lands at ratio 2 (1.3 MP) and can fall no lower than ~1.74;
+a 1080p desktop at DPR 2 stays at 1.47, exactly where it was, and can still
+step down to 0.7 of that under load. Guarded in `check-site`. Not measured
+on the phone itself — that is Michael's next look at the live URL.
+
+---
+
 ## Open, and genuinely undecided
 
 - ~~**One project title.**~~ **Answered 20 Aug: `rag-pipeline` is `Footnote`.** It had

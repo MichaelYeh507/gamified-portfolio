@@ -150,7 +150,7 @@ export default class Physics {
    *
    *   { type, colliders, sleeping, position?, rotation?,
    *     restitution?, friction?, category?, mass?,
-   *     canSleep?, enabled?, linearDamping?, angularDamping? }
+   *     canSleep?, enabled?, linearDamping?, angularDamping?, gravityScale? }
    *
    * and a collider is `{ shape, position, quaternion, parameters,
    * restitution?, friction?, category? }`, local to its body. Positions and
@@ -204,6 +204,9 @@ export default class Physics {
     if (description.canSleep !== undefined) bodyDesc.setCanSleep(description.canSleep);
     if (description.sleeping !== undefined) bodyDesc.setSleeping(description.sleeping);
     if (description.enabled !== undefined) bodyDesc.setEnabled(description.enabled);
+    // Per-body gravity, for the one thing that should fall slower than the
+    // car: the football (`pitchPlan.BALL.gravityScale`).
+    if (description.gravityScale !== undefined) bodyDesc.setGravityScale(description.gravityScale);
     bodyDesc.setLinearDamping(physical.linearDamping);
     bodyDesc.setAngularDamping(physical.angularDamping);
 

@@ -21,7 +21,15 @@
  * behind the reference's menu button; ours is one table and a way back to it.
  */
 
-const LAUNCH_SECONDS = 9;
+/**
+ * How long the launch sheet stays before it fades. Was 9 s; Michael from
+ * the live site (3 Sep): "the initial controls should show a little longer,
+ * enough time for a normal person to read all the controls". Eight rows,
+ * a title and a foot is thirty-odd words, and a visitor is looking at the
+ * world first, not the sheet: 20 s is a read at leisure, and `H` or the
+ * pill brings it back any time.
+ */
+const LAUNCH_SECONDS = 20;
 
 export default class Controls {
   constructor(game) {
