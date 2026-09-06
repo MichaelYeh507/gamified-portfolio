@@ -1,8 +1,12 @@
 import * as THREE from 'three/webgpu';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COLOR, paint } from '../render/palette.js';
-import { WATER_SURFACE } from './Terrain.js';
+import { WATER_SURFACE, bridgesPlan } from './Terrain.js';
 import { wayfindingPlan } from './wayfindingPlan.js';
+import { BRIDGE } from './bridgePlan.js';
+
+/** The island's ground friction (`Island.js`), so a deck drives like the road it carries. */
+const GROUND_FRICTION = 0.2;
 
 /**
  * The wayfinding layer: the three sand roads and the four signposts, built
@@ -60,11 +64,60 @@ export default class Wayfinding {
     const startedAt = performance.now();
     for (const post of this.plan.signposts) this._buildPost(post);
     this._assertDryFlat();
+    const bridges = this._buildBridges();
     console.info(
-      `[wayfinding] ${this.plan.signposts.length} signposts, ` +
+      `[wayfinding] ${this.plan.signposts.length} signposts, ${bridges} bridges, ` +
         `${(performance.now() - startedAt).toFixed(2)} ms`
     );
     return this.group;
+  }
+
+  /**
+   * The bridges (6 Sep): the found pontoon over every ford `bridgePlan`
+   * finds on the routes, through `objects.add` as a fixed body — not
+   * `addFromModel`, because the collider is not in the GLB: the deck's slab
+   * is sized here from the plan's length, since each ford gets the one
+   * model stretched along its long axis to its own span (a non-uniform
+   * scale on a low-poly plank deck — the planks get longer, nothing else
+   * shows). The body's collider runs from the model's base to the deck top,
+   * so nothing can get under the planks, and stops at the deck: the rails
+   * are visual, like every marker stone's cap. Under the deck the channel
+   * keeps its natural bed (`Terrain.bridgesPlan` / `bridgePlan.coverAt`,
+   * Michael's call: "the bridges should be over water"); the fords the
+   * roads still make elsewhere keep their physics.
+   *
+   * The plan is the terrain's own — derived once over the ford-only field
+   * before the terrain deepened the water under it — so the decks here are
+   * the decks the ground was carved for.
+   */
+  _buildBridges() {
+    const model = this.game.props?.pontoon;
+    if (!model) return 0;
+    this.bridges = bridgesPlan();
+    for (const bridge of this.bridges) {
+      const clone = model.clone(true);
+      clone.name = `bridge:${bridge.id}`;
+      clone.scale.z = bridge.length / BRIDGE.nominalLength;
+      const deckTop = BRIDGE.deck * BRIDGE.height;
+      this.game.objects.add(
+        { model: clone },
+        {
+          type: 'fixed',
+          friction: GROUND_FRICTION,
+          sleeping: true,
+          position: [bridge.at[0], BRIDGE.deckY - deckTop, bridge.at[1]],
+          rotation: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), bridge.heading),
+          colliders: [
+            {
+              shape: 'cuboid',
+              parameters: [BRIDGE.width / 2, deckTop / 2, bridge.length / 2],
+              position: [0, deckTop / 2, 0],
+            },
+          ],
+        }
+      );
+    }
+    return this.bridges.length;
   }
 
   /**

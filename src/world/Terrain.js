@@ -4,7 +4,11 @@ import areaDefs from '../content/areas.js';
 import { PITCH } from './pitchPlan.js';
 import projects from '../content/projects.js';
 import { plazaFloorRadius } from './areas/ProjectsArea.js';
-import { fordReliefAt, distanceToRoutes, distanceToPolyline, FORD, ROAD } from './wayfindingPlan.js';
+import { fordReliefAt, distanceToRoutes, distanceToPolyline, FORD, ROAD, wayfindingPlan } from './wayfindingPlan.js';
+// A cycle on purpose: bridgePlan reads WATER_SURFACE from here inside its
+// functions, and carveAt reads the bridges' cover from there inside this one.
+// Neither touches the other's exports at module evaluation.
+import { bridgePlan, coverAt } from './bridgePlan.js';
 import roles from '../content/roles.js';
 import {
   LEAD_IN,
@@ -499,7 +503,7 @@ export function assertBasinsClear() {
  * untouched land. Channels combine with a **smooth** maximum rather than a hard
  * one, so a confluence is a bowl rather than a seam — see `smoothMax`.
  */
-export function carveAt(x, z) {
+export function carveAt(x, z, bridged = true) {
   let deepest = 0;
   let touched = false;
 
@@ -547,9 +551,18 @@ export function carveAt(x, z) {
    * the ford's centreline — the same wheel-step `smoothMax` exists to prevent
    * — and the relief multiplies the *difference*, so outside a channel
    * (carve 0) a road changes nothing at all.
+   *
+   * **Where a bridge stands, there is no ford** (6 Sep, evening, Michael:
+   * "the bridges should be over water"): the relief is multiplied by
+   * (1 − `coverAt`), 1 inside a deck's footprint fading to 0 over
+   * `BRIDGE.fade` beyond it, so the channel keeps its natural bed under
+   * the deck and the shelf returns around it. `bridged = false` is the
+   * ford-only field `bridgesPlan` derives the decks over — the cover
+   * depends on the plan, so the plan must not depend on the cover.
    */
   if (deepest > 0) {
-    const relief = fordReliefAt(x, z);
+    let relief = fordReliefAt(x, z);
+    if (relief > 0 && bridged) relief *= 1 - coverAt(bridgesPlan(), x, z);
     if (relief > 0) {
       const forded = -smoothMax(-deepest, -FORD.carveCap, FORD.blend);
       deepest += (forded - deepest) * relief;
@@ -610,14 +623,14 @@ export function assertChannelsClear() {
  * and everything that needs a height between samples should use the grid rather
  * than call this, so that nothing ever sits at a height the car cannot drive on.
  */
-export function heightAt(x, z) {
+export function heightAt(x, z, bridged = true) {
   // The coast through the same warp the channels use (`bankWarp`): a
   // sum-of-sines radius is smooth at every scale, and a painted shoreline
   // is not.
   const [xw, zw] = bankWarp(x, z);
   const d = Math.hypot(xw, zw);
   const beach = beachRadius(Math.atan2(zw, xw));
-  const carved = -carveAt(x, z);
+  const carved = -carveAt(x, z, bridged);
 
   // `LAND_RELIEF` is 0 (decision 46), so inland height *is* the carve. The
   // relief term is left in the expression rather than folded away: it keeps the
@@ -639,6 +652,74 @@ export function heightAt(x, z) {
   return Math.max(WATER_FLOOR, merged);
 }
 
+/**
+ * The bilinear read of a sample grid in the reference's layout — the field
+ * the car actually rides (the collision heightfield is built from the same
+ * samples). Shared by the instance's `heightAt` and the ford-only grid the
+ * bridges are planned over, so the two can never disagree about a bank.
+ */
+function bilinear(heights, x, z) {
+  const fx = (x + HALF) / CELL;
+  const fz = (z + HALF) / CELL;
+  const ix = Math.min(SAMPLES - 2, Math.max(0, Math.floor(fx)));
+  const iz = Math.min(SAMPLES - 2, Math.max(0, Math.floor(fz)));
+  const tx = Math.min(1, Math.max(0, fx - ix));
+  const tz = Math.min(1, Math.max(0, fz - iz));
+
+  const h00 = heights[iz + ix * SAMPLES];
+  const h10 = heights[iz + (ix + 1) * SAMPLES];
+  const h01 = heights[iz + 1 + ix * SAMPLES];
+  const h11 = heights[iz + 1 + (ix + 1) * SAMPLES];
+
+  return (h00 * (1 - tx) + h10 * tx) * (1 - tz) + (h01 * (1 - tx) + h11 * tx) * tz;
+}
+
+/** The grid of `heightAt` at the sample nodes, border ring pinned to the floor. */
+function sampleGrid(bridged) {
+  const heights = new Float32Array(SAMPLES * SAMPLES);
+  for (let ix = 0; ix < SAMPLES; ix++) {
+    const x = -HALF + ix * CELL;
+    for (let iz = 0; iz < SAMPLES; iz++) {
+      const z = -HALF + iz * CELL;
+      // The border ring is pinned to the floor. The dish overruns the grid by
+      // up to 2.4 units in the widest bearings (see `SHELF_RUN`), and this is
+      // what makes the height field end on the same value the bedrock's top
+      // face sits at — so the collider, the depth texture and the world
+      // outside all agree, with no step to fall down.
+      const border = ix === 0 || iz === 0 || ix === SAMPLES - 1 || iz === SAMPLES - 1;
+      heights[iz + ix * SAMPLES] = border ? WATER_FLOOR : heightAt(x, z, bridged);
+    }
+  }
+  return heights;
+}
+
+let _bridges = null;
+let _fordGrid = null;
+
+/**
+ * The bridges, derived once over the **ford-only grid field** — the roads'
+ * fords applied, no bridge cover yet, read bilinearly off the same 1.5-unit
+ * samples the collision heightfield is built from. That is the field the
+ * car would ride if there were no bridges, so a deck planned over it ends
+ * exactly where the bank has risen to meet it; the cover then deepens the
+ * water under the deck without moving either end (`bridgePlan` has the
+ * argument). Cached like `wayfindingPlan`; `unitsPerYear` re-derives at
+ * another corridor scale for the check suite without touching the cache.
+ */
+export function bridgesPlan({ unitsPerYear = null } = {}) {
+  if (unitsPerYear !== null) {
+    return bridgePlan(wayfindingPlan({ unitsPerYear }).routes, fordGroundAt);
+  }
+  if (!_bridges) _bridges = bridgePlan(wayfindingPlan().routes, fordGroundAt);
+  return _bridges;
+}
+
+/** The ford-only grid field, built on first use. */
+export function fordGroundAt(x, z) {
+  if (!_fordGrid) _fordGrid = sampleGrid(false);
+  return bilinear(_fordGrid, x, z);
+}
+
 export default class Terrain {
   constructor() {
     /**
@@ -651,21 +732,7 @@ export default class Terrain {
     assertChannelsClear();
     assertBasinsClear();
 
-    this.heights = new Float32Array(SAMPLES * SAMPLES);
-
-    for (let ix = 0; ix < SAMPLES; ix++) {
-      const x = -HALF + ix * CELL;
-      for (let iz = 0; iz < SAMPLES; iz++) {
-        const z = -HALF + iz * CELL;
-        // The border ring is pinned to the floor. The dish overruns the grid by
-        // up to 2.4 units in the widest bearings (see `SHELF_RUN`), and this is
-        // what makes the height field end on the same value the bedrock's top
-        // face sits at — so the collider, the depth texture and the world
-        // outside all agree, with no step to fall down.
-        const border = ix === 0 || iz === 0 || ix === SAMPLES - 1 || iz === SAMPLES - 1;
-        this.heights[iz + ix * SAMPLES] = border ? WATER_FLOOR : heightAt(x, z);
-      }
-    }
+    this.heights = sampleGrid(true);
 
     this._texture = null;
   }
@@ -679,19 +746,7 @@ export default class Terrain {
 
   /** Bilinear height, for anything that moves continuously — the car, mostly. */
   heightAt(x, z) {
-    const fx = (x + HALF) / CELL;
-    const fz = (z + HALF) / CELL;
-    const ix = Math.min(SAMPLES - 2, Math.max(0, Math.floor(fx)));
-    const iz = Math.min(SAMPLES - 2, Math.max(0, Math.floor(fz)));
-    const tx = Math.min(1, Math.max(0, fx - ix));
-    const tz = Math.min(1, Math.max(0, fz - iz));
-
-    const h00 = this.heights[iz + ix * SAMPLES];
-    const h10 = this.heights[iz + (ix + 1) * SAMPLES];
-    const h01 = this.heights[iz + 1 + ix * SAMPLES];
-    const h11 = this.heights[iz + 1 + (ix + 1) * SAMPLES];
-
-    return (h00 * (1 - tx) + h10 * tx) * (1 - tz) + (h01 * (1 - tx) + h11 * tx) * tz;
+    return bilinear(this.heights, x, z);
   }
 
   /** Depth of water over the ground at this point. Negative on dry land. */

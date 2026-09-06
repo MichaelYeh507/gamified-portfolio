@@ -548,9 +548,32 @@ launch sheet stays up 20 s instead of 9. And the ball is floaty (a 0.6
 gravity scale, its own body's) so a boosted car can get under it for an
 air dribble.
 
-Not done yet: toasts (deferred by Michael), bridges
-(Michael has offered assets), the playground (designated cut), the foliage
-sprite material, audio, the `availability` line when Michael writes it.
+**Bridges (6 Sep, evening).** The last deferred wayfinding item: a found
+pontoon (artikora's human-props pack, CC-BY, `CREDITS.md`) stands over
+each crossing where the whole road is wet — the trunk beside the landing
+and the contact-career channel. The crossings are found rather than
+authored: `src/world/bridgePlan.js` walks every route over the height
+field, seeds a crossing where the centreline and both road edges are wet,
+extends it while any of them stays under the deck, and lays a straight
+deck along the least-squares line with both ends buried in the banks, so
+there is no step on or off. One fixed collider from the base to the deck
+top. **Where a bridge stands there is no ford** (Michael, the same
+evening: "the bridges should be over water"): the terrain multiplies the
+ford's relief by one minus the deck's cover, so the river keeps its
+natural bed under each deck and the shelf fades back beside it at under
+the bank gradient. The decks are planned over the ford-only field first,
+which is what keeps the plan and the terrain from chasing each other, and
+the deck ends do not move. The retint tool grew a
+`footprint` word — a non-uniform scale, because every bridge in the pack
+is person-scale and a car needs a 4.6 deck without roof-high rails. The
+third carved span on the career road is a channel-head skim with one edge
+on the grass, and it stays a ford (a deck there would beach on the lawn).
+Driven headless: the chassis dips the 10 cm onto the deck and back with no
+vertical spike. Michael's drive verdict is pending.
+
+Not done yet: toasts (deferred by Michael), the playground (designated
+cut), the foliage sprite material, audio, the `availability` line when
+Michael writes it.
 
 **Phase 2b is the current block**, and unlike 2a it *does* need the outstanding
 writing — see `ROADMAP.md` → *Outstanding input*.
@@ -988,13 +1011,13 @@ layer.
 of 6 September 2026 with the site live at michaelyeh.dev and drivable on a
 phone:
 
-1. **Bridges** at the three fords. A CC-BY pack with a long bridge, a short
-   bridge and a flat pontoon has been found and measured (the same author
-   as the prehistoric pack, so the retint path is proven); the pontoon is
-   the pick for the fords. Recipe, credit row and placement are next.
+1. **Michael's drive on the bridges** (landed 6 Sep, evening, water under
+   the decks on his call): the pontoon's look, and whether the
+   channel-head ford on the career road should stay a ford.
 2. **The art pass** — more content and a better-looking map, on Michael's
-   note — from found assets through the retint tool, and his drive verdict
-   on the look calls still only screenshot-judged.
+   note — from the same pack's fences, barrels, crates and lamps through
+   the retint tool, and his drive verdict on the look calls still only
+   screenshot-judged.
 3. **The plaza in portrait** (`KNOWN-ISSUES.md` 23), a design call for the
    phone: tighten the arc or let a portrait visitor drive along it.
 4. **Pitch extras** when he asks: a score, a second goal.

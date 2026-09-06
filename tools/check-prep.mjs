@@ -250,7 +250,7 @@ async function main() {
   // ------------------------------------------- the packs, against shipped files
   console.log('\nthe packs, each item byte-compared against its shipped file:');
   const { prepPack } = await import('./prep-model.mjs');
-  for (const packName of ['prehistoricPack', 'medievalPack']) {
+  for (const packName of ['prehistoricPack', 'medievalPack', 'humanPropsPack']) {
     const results = await prepPack(packName, { io });
     let drifted = 0;
     for (const [itemName, itemBytes] of results) {

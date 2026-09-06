@@ -328,6 +328,49 @@ export const RECIPES = {
       },
     },
   },
+
+  /**
+   * The human-props pack — artikora again (the prehistoric pack's author,
+   * the same per-pack atlas path: one material, every colour a patch on one
+   * painted image), found 6 Sep for the one deferred wayfinding item, the
+   * bridges. It carries a long bridge, a short bridge and a flat pontoon,
+   * plus fences, barrels, crates and lamps for the art pass.
+   *
+   * **The pontoon is the bridge, at all three fords.** Measured before
+   * chosen (the standing ritual): every bridge in the pack is a footbridge
+   * by proportion — the long bridge's deck rides on legs at 0.45 of a height
+   * that is 1.6× its width, so at a car's width its deck would stand 0.4
+   * above the banks with a step at each end and no ramp; the short bridge is
+   * the same construction. The pontoon's deck is a flat plank sheet at
+   * 0.60–0.70 of its height (uneven planks, on purpose) over floats that
+   * span the back three quarters of its length, with an unrailed gangplank
+   * at the front — a deck that can sit AT the water and bury its ends in
+   * the banks, which is the only bridge shape the fords' physics (untouched,
+   * `wayfindingPlan`) can take without a ramp being invented.
+   *
+   * `footprint` is the new recipe word, and it is a non-uniform scale on
+   * purpose: the pontoon is 0.38 wide for 0.276 tall raw — a person-scale
+   * bridge. A car needs a 4.6 deck (`ROAD.width` 3.4 plus a 0.6 kerb each
+   * side, the kerb being what a bowed road's stray from a straight deck
+   * fits inside), and at that width a uniform scale puts the rails at 1.0, level
+   * with the car's roof line under the 45° camera, and the deck 2.0 above
+   * the floats' bottom. The footprint keeps the plan at road scale and the
+   * height at 1.4 — rails at ~0.5 over the deck, a kerb rail rather than a
+   * fence — and a squat, wide pontoon is what a vehicle pontoon looks like.
+   * `bridgePlan.BRIDGE` restates these three numbers (width, height, deck
+   * fraction) for the placement; `check-wayfinding` holds the shipped GLB's
+   * bounds against them.
+   */
+  humanPropsPack: {
+    source: 'assets/models/human_props_-_stylized_low_poly_asset.glb',
+    snapColors: true,
+    items: {
+      pontoon: {
+        output: 'public/models/pontoon.glb', include: ['Pontoon'],
+        targetHeight: 1.4, footprint: [4.6, 10.7], origin: 'bbox',
+      },
+    },
+  },
 };
 
 // ------------------------------------------------------------------ helpers
@@ -626,6 +669,34 @@ function normalise(positions, normals, recipe) {
     positions[i * 3 + 1] -= minY;
     positions[i * 3 + 2] -= cz;
   }
+
+  /**
+   * `footprint: [width, length]` — a second, non-uniform scale over X and Z
+   * after the uniform one, for a model whose plan must be at one scale and
+   * its height at another (the pontoon: a footbridge's proportions under a
+   * car's width). Normals transform by the inverse scale and renormalise,
+   * as under any non-uniform matrix.
+   */
+  if (recipe.footprint) {
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (let i = 0; i < count; i++) {
+      minX = Math.min(minX, positions[i * 3]); maxX = Math.max(maxX, positions[i * 3]);
+      minZ = Math.min(minZ, positions[i * 3 + 2]); maxZ = Math.max(maxZ, positions[i * 3 + 2]);
+    }
+    const sx = recipe.footprint[0] / (maxX - minX);
+    const sz = recipe.footprint[1] / (maxZ - minZ);
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] *= sx;
+      positions[i * 3 + 2] *= sz;
+      const nx = normals[i * 3] / sx;
+      const ny = normals[i * 3 + 1];
+      const nz = normals[i * 3 + 2] / sz;
+      const len = Math.hypot(nx, ny, nz) || 1;
+      normals[i * 3] = nx / len;
+      normals[i * 3 + 1] = ny / len;
+      normals[i * 3 + 2] = nz / len;
+    }
+  }
 }
 
 /**
@@ -823,6 +894,8 @@ export async function verify(io, bytes, recipe, sourceTriangles) {
   let triangles = 0;
   let minY = Infinity;
   let maxY = -Infinity;
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
   const materialNames = [];
   const perMesh = new Map(); // mesh name → triangle count
   for (const mesh of document.getRoot().listMeshes()) {
@@ -833,10 +906,14 @@ export async function verify(io, bytes, recipe, sourceTriangles) {
       materialNames.push(primitive.getMaterial().getName());
 
       const pos = primitive.getAttribute('POSITION').getArray();
-      for (let i = 1; i < pos.length; i += 3) {
-        minY = Math.min(minY, pos[i]);
-        maxY = Math.max(maxY, pos[i]);
+      for (let i = 0; i < pos.length; i += 3) {
+        for (let k = 0; k < 3; k++) {
+          min[k] = Math.min(min[k], pos[i + k]);
+          max[k] = Math.max(max[k], pos[i + k]);
+        }
       }
+      minY = min[1];
+      maxY = max[1];
 
       // Every UV must sit at v = 0.5 on the centre of an *assigned* band —
       // never headroom, never between bands.
@@ -864,6 +941,15 @@ export async function verify(io, bytes, recipe, sourceTriangles) {
     if (Math.abs(minY) > 1e-4) failures.push(`not grounded: minY ${minY}`);
     if (Math.abs(maxY - minY - recipe.targetHeight) > 1e-3) {
       failures.push(`height ${(maxY - minY).toFixed(4)} != target ${recipe.targetHeight}`);
+    }
+  }
+  if (recipe.footprint) {
+    const [width, length] = recipe.footprint;
+    if (Math.abs(max[0] - min[0] - width) > 1e-3 || Math.abs(max[2] - min[2] - length) > 1e-3) {
+      failures.push(
+        `footprint ${(max[0] - min[0]).toFixed(4)} x ${(max[2] - min[2]).toFixed(4)} != ` +
+        `target ${width} x ${length}`
+      );
     }
   }
   if (sourceTriangles != null && triangles !== sourceTriangles) {

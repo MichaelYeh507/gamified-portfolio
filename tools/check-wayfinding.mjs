@@ -19,6 +19,9 @@
  *     boost speed** — the max height step between samples must stay under the
  *     trunk bank's own gradient, which is the smoothness bar Michael's
  *     deferred note set ("bumps in rivers for when we boost too fast").
+ *     **Under a bridge deck the ground is exempt** (6 Sep, evening): the
+ *     car is on the deck there and the channel below keeps its natural bed
+ *     — that is family 5's business.
  *
  *  3. The signpost sites: dry, flat, beside their roads, and clear of every
  *     artifact already standing — the landing's letters and tagline, the
@@ -35,6 +38,27 @@
  *     built at the shipped scale, and sweeping a 2-plan against a 4-terrain
  *     would test a world that cannot exist.
  *
+ *  5. The bridges (6 Sep): `bridgesPlan` over the ford-only grid field must
+ *     find exactly the two crossings where the whole road is wet — the trunk
+ *     beside the landing and the contact-career channel — and NOT the third
+ *     carved span, where the road skims a channel head with one edge on the
+ *     grass (a bridge there beaches on the lawn; the ford handles it). Each
+ *     deck covers every wet centreline sample of its route, buries both
+ *     ends in the bank ON THE FINAL FIELD (no step off either end, on the
+ *     centreline or an edge), keeps the road inside its kerbs on the bowed
+ *     route, floats above the water and under the banks, and stands clear
+ *     of the posts and the spawn. **Water under the deck** (Michael's call,
+ *     6 Sep evening): the final ground under each deck's centre is real
+ *     river bed, at least 0.4 under the surface, while the ford-only field
+ *     there is the 0.32 cap — proof the cover is what deepened it; the
+ *     shelf fades back beside the deck at no more than the bank gradient;
+ *     and the channel-head ford is identical with and without bridges. The
+ *     shipped `pontoon.glb` is held to the numbers `BRIDGE` restates from
+ *     its recipe, so the model and the placement cannot drift apart. Guards
+ *     made to fail: the count with the wet line dropped to −0.5 (found 0),
+ *     the end burial with `endRise` at −0.2, the water under the deck with
+ *     the cover disabled (`bridged` forced false → −0.32 under the deck).
+ *
  * Exits 1 on any mismatch.
  */
 globalThis.self = globalThis;
@@ -50,8 +74,9 @@ const {
   ROAD,
   FORD,
 } = await import('../src/world/wayfindingPlan.js');
-const { default: Terrain, heightAt, BANK_GRADIENT, WATER_SURFACE, SAMPLES, HALF, CELL } =
+const { default: Terrain, heightAt, bridgesPlan, fordGroundAt, BANK_GRADIENT, WATER_SURFACE, SAMPLES, HALF, CELL } =
   await import('../src/world/Terrain.js');
+const { BRIDGE, coverAt } = await import('../src/world/bridgePlan.js');
 const {
   buildTimeline,
   corridorPlan,
@@ -132,10 +157,16 @@ console.log('\nthe routes, against the real height field:');
   );
 
   const expectWet = { 'landing-projects': false, 'landing-contact': true, 'contact-career': true };
+  // Under a deck the car rides the deck, not the river bed the cover put
+  // back under it: those samples are family 5's, and skipped here. A point
+  // is "under a deck" when the cover is 1 — inside the footprint proper.
+  const bridges = bridgesPlan();
+  const underDeck = (x, z) => coverAt(bridges, x, z) >= 1;
   for (const route of plan.routes) {
     let minH = Infinity;
     let wet = 0;
     let maxStep = 0;
+    let skipped = 0;
     const step = 0.75;
     // Walk the SAMPLED curve at fine steps, on the centreline and both
     // road edges — the lateral direction comes from each segment.
@@ -150,6 +181,7 @@ console.log('\nthe routes, against the real height field:');
         for (let s = 0; s < length; s += step) {
           const x = ax + ((bx - ax) * s) / length + px;
           const z = az + ((bz - az) * s) / length + pz;
+          if (underDeck(x, z)) { skipped++; prev = null; continue; }
           const h = heightAt(x, z);
           minH = Math.min(minH, h);
           if (h <= WATER_SURFACE) wet++;
@@ -164,13 +196,15 @@ console.log('\nthe routes, against the real height field:');
       }
     }
 
+    // A bridged route is wet where its deck ends bury into the wet-sand
+    // bank and at the channel-head skim; a dry route has no bridge at all.
     check(
       `${route.id}: ${expectWet[route.id] ? 'fords its crossing' : 'dry the whole way'}`,
-      expectWet[route.id] ? wet > 0 : wet === 0,
-      `${wet} wet samples`
+      expectWet[route.id] ? wet + skipped > 0 : wet === 0 && skipped === 0,
+      `${wet} wet samples, ${skipped} under a deck`
     );
     check(
-      `${route.id}: never deeper than the drag-free splash`,
+      `${route.id}: never deeper than the drag-free splash (off the decks)`,
       WATER_SURFACE - minH < DRAG_FREE_DEPTH,
       `deepest ${minH.toFixed(3)}`
     );
@@ -337,6 +371,176 @@ for (const unitsPerYear of [SHIPPED_UNITS_PER_YEAR, 2]) {
   }
   const dCartPost = Math.hypot(cplan.cart.x - post[0], cplan.cart.z - post[1]);
   check(`y${unitsPerYear}: the post and the cart keep their distance`, dCartPost > 2.5, dCartPost.toFixed(1));
+}
+
+// ------------------------------------------------------------ the bridges
+console.log('\nthe bridges (6 Sep — the pontoon over every crossing the plan finds):');
+{
+  const defs = Object.fromEntries(areaDefs.map((def) => [def.id, def]));
+  const kerb = (BRIDGE.width - ROAD.width) / 2;
+
+  /** The route's wet centreline samples at a fine step, for the coverage sweep. */
+  const wetSamples = (route) => {
+    const wet = [];
+    for (let i = 0; i < route.samples.length - 1; i++) {
+      const [ax, az] = route.samples[i];
+      const [bx, bz] = route.samples[i + 1];
+      const length = Math.hypot(bx - ax, bz - az);
+      for (let s = 0; s < length; s += 0.25) {
+        const x = ax + ((bx - ax) * s) / length;
+        const z = az + ((bz - az) * s) / length;
+        if (heightAt(x, z) <= WATER_SURFACE) wet.push([x, z]);
+      }
+    }
+    return wet;
+  };
+  /** Deck-local coordinates of a world point. */
+  const local = (bridge, [x, z]) => {
+    const ux = Math.sin(bridge.heading);
+    const uz = Math.cos(bridge.heading);
+    const dx = x - bridge.at[0];
+    const dz = z - bridge.at[1];
+    return { along: dx * ux + dz * uz, across: -dx * uz + dz * ux };
+  };
+  const onDeck = (bridge, p) => {
+    const { along, across } = local(bridge, p);
+    return Math.abs(along) <= bridge.length / 2 && Math.abs(across) <= BRIDGE.width / 2;
+  };
+
+  // The plan is the terrain's own (`bridgesPlan`): derived over the
+  // ford-only GRID field — the bilinear read of the 1.5-unit samples the
+  // car actually rides, before the bridge cover deepens the water — so the
+  // decks here are the decks the ground was carved for (a deck sized on
+  // the smooth analytic field ended 0.4 short of the grid's on the first
+  // run). The ends are then held against the FINAL field, cover applied:
+  // that is the ground a wheel meets coming off the deck.
+  const ground = new Terrain();
+  const groundAt = (x, z) => ground.heightAt(x, z);
+
+  const sweep = (label, plan, bridges) => {
+    check(
+      `${label}: two bridges — the trunk and the contact-career channel (guard made to fail)`,
+      bridges.length === 2 &&
+        bridges.some((b) => b.route === 'landing-contact') &&
+        bridges.some((b) => b.route === 'contact-career'),
+      bridges.map((b) => `${b.id} ${b.length.toFixed(1)} long`).join(', ')
+    );
+    // The channel head at [-34.4, -1.8] (measured 6 Sep): a ford, never a bridge.
+    check(
+      `${label}: the channel-head ford on the career road carries no bridge`,
+      bridges.every((b) => !onDeck(b, [-34.4, -1.8])),
+    );
+    for (const bridge of bridges) {
+      const route = plan.routes.find((r) => r.id === bridge.route);
+      const wet = wetSamples(route);
+      const uncovered = wet.filter((p) => !onDeck(bridge, p)).length;
+      check(
+        `${label}: ${bridge.id} covers every wet sample of its road`,
+        wet.length > 0 && uncovered === 0,
+        `${wet.length} wet, ${uncovered} off the deck`
+      );
+      // No step off either end: the ground at each end, on the centreline and
+      // both road edges, sits at or above the deck (the end is buried).
+      const ux = Math.sin(bridge.heading);
+      const uz = Math.cos(bridge.heading);
+      let lowestEnd = Infinity;
+      for (const [ex, ez] of bridge.ends) {
+        for (const side of [-ROAD.half, 0, ROAD.half]) {
+          lowestEnd = Math.min(lowestEnd, groundAt(ex - uz * side, ez + ux * side));
+        }
+      }
+      check(
+        `${label}: ${bridge.id} buries both ends in the bank (guard made to fail)`,
+        lowestEnd >= BRIDGE.deckY,
+        `lowest end ground ${lowestEnd.toFixed(3)} against deck ${BRIDGE.deckY}`
+      );
+      check(
+        `${label}: ${bridge.id} keeps the bowed road inside its kerbs`,
+        bridge.deviation <= kerb,
+        `strays ${bridge.deviation.toFixed(2)} against kerb ${kerb.toFixed(2)}`
+      );
+      for (const post of plan.signposts) {
+        const { along, across } = local(bridge, post.at);
+        const clear = Math.max(Math.abs(along) - bridge.length / 2, Math.abs(across) - BRIDGE.width / 2);
+        check(`${label}: ${bridge.id} stands clear of the ${post.id} post`, clear > 1.0, clear.toFixed(2));
+      }
+    }
+    return bridges;
+  };
+
+  const shipped = sweep('shipped', wayfindingPlan(), bridgesPlan());
+  check('the deck floats above the water and under the banks',
+    BRIDGE.deckY - WATER_SURFACE >= 0.15 && BRIDGE.deckY < 0,
+    `deck ${BRIDGE.deckY}, water ${WATER_SURFACE}`);
+
+  // Water under the deck: the final field under each deck's centre is river
+  // bed, the ford-only field there is the cap — the difference IS the cover.
+  for (const bridge of shipped) {
+    const finalH = groundAt(...bridge.at);
+    const fordH = fordGroundAt(...bridge.at);
+    check(`${bridge.id}: real water under the deck (guard made to fail)`,
+      WATER_SURFACE - finalH >= 0.4 && Math.abs(fordH - -0.32) < 0.03,
+      `final ${finalH.toFixed(2)}, ford-only ${fordH.toFixed(2)}`);
+    // The shelf fades back beside the deck at no more than the bank gradient.
+    const ux = Math.sin(bridge.heading);
+    const uz = Math.cos(bridge.heading);
+    let maxGradient = 0;
+    let prev = null;
+    for (let a = 0; a <= BRIDGE.width / 2 + BRIDGE.fade + 1; a += 0.25) {
+      for (const sign of [-1, 1]) {
+        const h = heightAt(bridge.at[0] - uz * a * sign, bridge.at[1] + ux * a * sign);
+        if (prev && prev[sign] !== undefined) maxGradient = Math.max(maxGradient, Math.abs(h - prev[sign]) / 0.25);
+        prev = { ...(prev ?? {}), [sign]: h };
+      }
+    }
+    check(`${bridge.id}: the shelf fades beside the deck at or under the bank gradient`,
+      maxGradient <= BANK_GRADIENT * 1.05, `${maxGradient.toFixed(3)} against ${BANK_GRADIENT}`);
+  }
+  check('the channel-head ford is the same with and without bridges',
+    Math.abs(heightAt(-34.4, -1.8) - heightAt(-34.4, -1.8, false)) < 1e-9 &&
+      heightAt(-34.4, -1.8) < -0.2,
+    heightAt(-34.4, -1.8).toFixed(3));
+  // The trunk bridge's near end is buried 1.5 from the spawn — under the
+  // car's tail at its opening pose, 6 cm below the bank. The spawn itself
+  // must stay off the deck and above it.
+  const trunk = shipped.find((b) => b.route === 'landing-contact');
+  const spawn = defs.landing.center;
+  check('the spawn stands off the trunk deck, on ground above it',
+    !!trunk && !onDeck(trunk, spawn) && groundAt(...spawn) > BRIDGE.deckY + 0.05,
+    `ground ${groundAt(...spawn).toFixed(3)}`);
+
+  // The y2 decks are held against the shipped-scale terrain (this suite's
+  // standing rule: no yearunit-2 terrain exists here), so only the plan's
+  // own contracts are checked at 2 — count, coverage, kerb, posts — and
+  // the end burial reads the ford-only field, which IS scale-independent
+  // where the y2 route differs.
+  sweep('y2', wayfindingPlan({ unitsPerYear: 2 }), bridgesPlan({ unitsPerYear: 2 }));
+
+  // The shipped model against the numbers the placement assumes.
+  const { NodeIO } = await import('@gltf-transform/core');
+  const { readFileSync } = await import('node:fs');
+  const pontoon = await new NodeIO().readBinary(new Uint8Array(readFileSync('public/models/pontoon.glb')));
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
+  for (const mesh of pontoon.getRoot().listMeshes()) {
+    for (const primitive of mesh.listPrimitives()) {
+      const pos = primitive.getAttribute('POSITION').getArray();
+      for (let i = 0; i < pos.length; i += 3) {
+        for (let k = 0; k < 3; k++) {
+          min[k] = Math.min(min[k], pos[i + k]);
+          max[k] = Math.max(max[k], pos[i + k]);
+        }
+      }
+    }
+  }
+  const size = max.map((v, k) => v - min[k]);
+  check('public/models/pontoon.glb is BRIDGE.width x height x nominalLength, grounded and centred',
+    Math.abs(size[0] - BRIDGE.width) < 2e-3 && Math.abs(size[1] - BRIDGE.height) < 2e-3 &&
+      Math.abs(size[2] - BRIDGE.nominalLength) < 2e-3 && Math.abs(min[1]) < 1e-4 &&
+      Math.abs(min[0] + max[0]) < 2e-3 && Math.abs(min[2] + max[2]) < 2e-3,
+    `${size.map((v) => v.toFixed(3)).join(' x ')}`);
+  check('the pontoon\'s attribution rides its asset extras',
+    String(pontoon.getRoot().getAsset().extras?.author ?? '').includes('artikora'));
 }
 
 console.log(`\ncheck-wayfinding: ${failed === 0 ? 'ok' : `${failed} FAILED`}`);

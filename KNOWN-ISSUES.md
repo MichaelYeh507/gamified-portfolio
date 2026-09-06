@@ -1504,6 +1504,31 @@ on the phone itself — that is Michael's next look at the live URL.
 
 ## Open, and genuinely undecided
 
+- ~~**The trunk bridge reads as a bridge over a sandbar**~~ (6 Sep, evening,
+  seen on the first mid-deck screenshot; the ford floor under the deck was
+  `FORD.carveCap` 0.32, 0.02 under the surface, rendering as the wet-sand
+  sheet). **Answered by Michael the same evening: "the bridges should be
+  over water, we might have to modify the terrain a bit."** Where a bridge
+  stands there is now no ford: `Terrain.carveAt` multiplies the ford relief
+  by (1 − `bridgePlan.coverAt`), 1 inside a deck's footprint fading to 0
+  over 3.5 beyond it, so the channel keeps its natural bed under the deck
+  (−1.05 under the trunk deck, −0.87 under the career one) and the shelf
+  fades back beside it at 0.18 per unit against the 0.273 bank gradient.
+  The decks are planned over the ford-only field first, which is what
+  breaks the circle. Consequence, accepted: a car leaving a deck sideways
+  now drops into 0.6–0.75 of water — the drag ramp and, deep enough, the
+  respawn — where before it forded. The two roads' other wet spot, the
+  channel-head skim, is untouched (`check-wayfinding` proves it identical
+  with and without bridges).
+- **The third carved span on the career road carries no bridge**
+  (`bridgePlan`, 6 Sep). The road skims the head of a southern channel:
+  the centreline never gets wet, one edge sits in 0.02 of water, the other
+  on the grass between 0 and −0.14. A level deck there is buried along one
+  side — a pontoon beached on a lawn — so the crossing rule requires the
+  whole road to be wet, and this stays the ford it is. If he wants the
+  puddle gone the honest fix is the route: the contact-career bow (−3.5)
+  nudged so the road clears the channel head, re-swept by the suite.
+
 - ~~**One project title.**~~ **Answered 20 Aug: `rag-pipeline` is `Footnote`.** It had
   been rendering as "(untitled)" on a board in the world, which was the point of
   leaving it visibly missing. (`grappling` was the other; it is **Aerial Ascent** as of

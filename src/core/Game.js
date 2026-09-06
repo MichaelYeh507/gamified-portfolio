@@ -361,9 +361,11 @@ export default class Game {
     // already prepped and credited with the rest of the medieval pack.
     // 'crate' and 'haystack' joined 2 Sep for the plaza's dressing — prepped
     // and credited with the pack on 31 Aug, unused until then.
+    // 'pontoon' (6 Sep, the human-props pack) is the bridge `Wayfinding`
+    // stands over every ford — one model, stretched to each span.
     const DRESSING_FILES = [
       'fence', 'cart', 'barrel', 'streetlight', 'bonfire', 'logPlain', 'logPine',
-      'crate', 'haystack',
+      'crate', 'haystack', 'pontoon',
     ];
     const found = await this.resourcesLoader.load([
       ...['lampPost', 'carBuggy', ...SHRUB_FILES, ...FLORA_FILES, ...ROCK_FILES,
