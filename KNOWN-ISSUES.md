@@ -1368,7 +1368,7 @@ that throws.
 
 ---
 
-## 🟡 25. Rapier's wasm ships as base64 inside the JS bundle
+## 🟡 25. Rapier's wasm ships as base64 inside the JS bundle — demoted 3 Sep, late: Michael's phone boots as fast as his desktop, so this is a nice-to-have
 
 **Where:** `@dimforge/rapier3d-compat`, imported in `src/world/Physics.js`.
 Measured 3 Sep during the Phase 6 audit.

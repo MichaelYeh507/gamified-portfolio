@@ -72,7 +72,7 @@ what must not ship (raw GLBs, tooling files, three's unused Draco decoders)
 and fails on what must (a placeholder in the HTML, a missing sibling,
 `_headers`, the preview image).
 
-**`npm run check` is the one to run before believing anything.** Eleven checks:
+**`npm run check` is the one to run before believing anything.** Twelve checks:
 it re-derives `palette.png` from its source and diffs the pixels, runs our
 `^ref` naming layer over **all 64 of the reference author's shipped GLBs** and checks the
 counts against report `F`, runs the runtime pipeline over the reference's `areas.glb`
@@ -87,8 +87,11 @@ geometry, the `.length` layout) — over the **real height field** with the
 island's no-overlap contracts, plus the **wayfinding** plan (roads, fords,
 posts), the **leaves** simulation as a pure step, and the **shipping
 surface** (`check-site`: the rendered head and fallback against the content,
-the static versions, the `_headers` rules), and the **football pitch**'s swept
-site. The naming and pipeline checks need
+the static versions, the `_headers` rules, the pixel budget), the **football
+pitch**'s swept site, its reset prompt and its bump loft, and **touch
+steering** (`check-touch`: the stick's maths, the real `Input` and
+`TouchStick` under a stubbed window with a real three camera and ray, the
+boost and jump pad, the copy). The naming and pipeline checks need
 the reference build's source cloned at `reference/source/` (gitignored; the
 repo is named in `CREDITS.md`); the rest need nothing but `npm install`.
 
@@ -982,22 +985,23 @@ layer.
 ## Next
 
 `ROADMAP.md` → *Carried into the next session* is authoritative. In short, as
-of 3 September 2026 with the site live at michaelyeh.dev:
+of 6 September 2026 with the site live at michaelyeh.dev and drivable on a
+phone:
 
-1. **Touch steering.** A phone cannot drive the site yet (`KNOWN-ISSUES.md`
-   24); the launch copy says so honestly. A virtual stick on the canvas
-   mapped onto the same `actions`, plus boost and jump buttons; then the
-   real phone pass.
-2. **The payload.** The physics wasm ships as base64 inside the JS chunk
-   (`KNOWN-ISSUES.md` 25); the non-compat Rapier package behind a wasm plugin
-   is the lever for the phone's load time.
-3. **Bridges** at the three fords, from Michael's offered assets through the
-   retint tool, or a plank bridge in code.
-4. **The art pass** — more content and a better-looking map, on Michael's
-   note — and his drive verdict on the look calls still only screenshot-judged.
-5. **Small holes:** a reset for the football when it leaves the island, a
-   score, toasts (deferred by Michael), the `availability` line and the two
-   CMU one-liners in `src/content/` when he writes them.
+1. **Bridges** at the three fords. A CC-BY pack with a long bridge, a short
+   bridge and a flat pontoon has been found and measured (the same author
+   as the prehistoric pack, so the retint path is proven); the pontoon is
+   the pick for the fords. Recipe, credit row and placement are next.
+2. **The art pass** — more content and a better-looking map, on Michael's
+   note — from found assets through the retint tool, and his drive verdict
+   on the look calls still only screenshot-judged.
+3. **The plaza in portrait** (`KNOWN-ISSUES.md` 23), a design call for the
+   phone: tighten the arc or let a portrait visitor drive along it.
+4. **Pitch extras** when he asks: a score, a second goal.
+5. **Small holes:** toasts (deferred by Michael), the `availability` line
+   and the two CMU one-liners in `src/content/` when he writes them, the
+   Rapier payload lever (`KNOWN-ISSUES.md` 25, demoted: the phone boots as
+   fast as the desktop now).
 
 Phases 2a, 2b, 3's opening sequence, the districts, game feel, wayfinding,
 the alive list and the deploy are all closed; their write-ups are the

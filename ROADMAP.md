@@ -3324,10 +3324,39 @@ itself instead of arriving as a finding.
 
 ### Carried into the next session
 
-**THE CODE TRACK PICKS UP HERE — THE SITE IS LIVE AND A PHONE CAN DRIVE IT
-(3 Sep, late); the phone pass, the payload lever, bridges, then the art
-pass.** The 3 Sep session, in one line each (every
-item has a *Now* entry above with the measurements):
+**THE CODE TRACK PICKS UP HERE — THE SITE IS LIVE, A PHONE CAN DRIVE IT,
+THE PROFILE PAGE IS DONE (3 to 6 Sep); bridges, then the art pass.**
+
+The 3 to 6 Sep session after the deploy, in one line each (every item has
+a *Now* entry above with the measurements):
+
+- **Touch steering** — the reference's ring stick anchored at the car,
+  boost and jump buttons, the hint as the touch unstuck button, "drag to
+  steer" back in the copy, `check-touch` the **twelfth** suite
+  (`KNOWN-ISSUES.md` 24 closed). Michael's phone: "looks better on mobile
+  now"; boot time "similar" to the desktop.
+- **The pixel budget** — the canvas had been rendering at 0.9 device
+  pixels per CSS pixel on a phone; `Viewport.pixelPolicy` budgets pixels
+  with the reference's cap of 2 (`KNOWN-ISSUES.md` 28). The launch sheet
+  stays 20 s.
+- **The football, three of his drives**: a 0.25 gravity scale (a new
+  `gravityScale` key on the physics description), a bump that lofts the
+  ball on car contact scaled by speed (`BUMP`), and the reset as a prompt
+  over a code-built amber-button pedestal beside the goal (`RESET_PROMPT`,
+  `BUTTON`) — nothing resets on its own.
+- **The recruiter pass** — Claude attribution scrubbed from the history of
+  all three pinned repos by hand with `git filter-repo` (author name
+  `unknown` → `Michael Yeh` too), GitHub's contributor caches cleared by
+  renaming the default branches; a profile README at `C:\dev\MichaelYeh507`
+  (pushed by Michael); this README's top rewritten for a recruiter with the
+  home-screen still (`public/og.jpg`) as the hero, after two GIF cuts he
+  dropped.
+- **A bridge asset found and measured**, not built: artikora's "Human
+  props" pack (CC-BY-4.0, texture atlas like the prehistoric pack; a long
+  bridge 3.7:1, a short bridge 2.2:1, a flat pontoon 2.3:1, plus fences,
+  barrels, crates, lamps for the art pass), in Michael's Downloads.
+
+The 3 Sep deploy session before it, in one line each:
 
 - **Deployed.** The build audit (6.3 → 4.9 MB; three Draco decoders shipped
   for one fetched), the head and the accessible fallback rendered from
@@ -3383,11 +3412,21 @@ item has a *Now* entry above with the measurements):
    budget shipped Michael re-tested on his phone — "boot time is similar
    on phone right now" — so this is a nice-to-have, not the next thing.
 0c. **The pitch's loose ends**, when he asks: ~~a reset for a ball that
-   leaves the island~~ (landed 3 Sep, late: 3 s wet or off the map and it
-   is back at the spot — `pitchPlan.ballLost`), a score, a second goal.
+   leaves the island~~ (landed 3 Sep, late, first as a 3 s timer, then on
+   his call as the prompt and button beside the goal), ~~a floaty ball~~
+   (gravity scale 0.25 and the bump loft), a score, a second goal.
 0d. **The art pass** (Michael, 3 Sep: "improve the art / map a bit more
    later to make it look better and like it has more content") — after
    bridges; his offered assets first, the retint tool, `CREDITS.md`.
+
+**So the next session starts with bridges**: the pontoon from artikora's
+"Human props" pack (`C:\Users\Michael Yeh\Downloads\human_props_-_stylized_low_poly_asset.glb`,
+CC-BY-4.0) through `tools/prep-model.mjs` (a texture-atlas recipe like
+`prehistoricPack`), a `CREDITS.md` row the moment it is copied into
+`assets/models/`, one model scaled per ford (they are 8 to 12 wide), a
+collider over the deck, the fords' physics untouched. Then the art pass
+from the same pack's fences, barrels, crates and lamps. Then the plaza in
+portrait (`KNOWN-ISSUES.md` 23) as a design call.
 
 The items below keep their order after that. After the six surface fixes,
 the 2 Sep session ran
