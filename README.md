@@ -1,15 +1,41 @@
 # Drive around my work
 
-**Live at [michaelyeh.dev](https://michaelyeh.dev/)** since 3 September 2026.
+**Live at [michaelyeh.dev](https://michaelyeh.dev/).** A personal site you drive.
 
-A drivable open-world personal site. You arrive on an island in open water, seen
-through a fixed diorama camera, and the content lives in the world rather than behind
-routes.
+[![The island at the start: the buggy beside the name, a signpost to the projects, career and contact](public/og.jpg)](https://michaelyeh.dev/)
 
-Built on the model of an MIT-licensed open-world portfolio (credited in
-`CREDITS.md`, and referred to throughout this repo as *the reference*), whose
-source we read file by file, plus runtime hygiene from two other sites we
-studied. The teardown notes are local working material and are not tracked.
+You arrive on an island seen through a fixed diorama camera. The projects,
+the career and the contact links stand on the island as places, and you
+drive to them: the boards open into real HTML cards, the career is a road
+with the years painted on it, the name is letters you can knock over.
+
+**What is in it**
+
+- A WebGPU renderer with an automatic WebGL2 fallback, every material written
+  once in TSL so both backends compile the same shaders.
+- A Rapier physics buggy with boost, a suspension-pop jump, an auto-flip, and
+  touch steering on phones (a ring anchored at the car, in the world).
+- Procedural terrain with water carved through it, roads and fords, grass,
+  leaves and wind lines, rain, and a day cycle every visitor sees at the same
+  time of day.
+- A football pitch at Rocket League scale, with a floaty ball and a reset
+  button beside the goal.
+- An accessible HTML fallback with every project, role and link, rendered
+  from the same content files as the world.
+- Twelve headless check suites (`npm run check`) that prove the generated
+  artifacts, the placements against the real height field, the input
+  mapping, the pixel policy and the shipping surface before a build.
+- Deployed on a Cloudflare Worker with content-hashed static files under
+  immutable cache headers.
+
+Built on the model of an MIT-licensed open-world portfolio, credited in
+`CREDITS.md` and referred to throughout this repo as *the reference*. Its
+source was read file by file and several mechanisms were ported; the numbers
+are ours.
+
+## Developing
+
+The teardown notes are local working material and are not tracked.
 
 ```bash
 npm install
