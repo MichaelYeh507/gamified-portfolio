@@ -558,7 +558,7 @@ console.log('plaza gate, the fishing spot), against the ground, the road and the
   const defs = Object.fromEntries(areaDefs.map((def) => [def.id, def]));
   const avoid = plan.signposts.map((post) => post.at);
   const items = [
-    ...bridgeDressing(bridges, { avoid }),
+    ...bridgeDressing(bridges, { avoid, groundAt: (x, z) => ground.heightAt(x, z) }),
     ...roadEndLanterns(plan.routes.find((r) => r.id === 'landing-projects')).map((l) => ({ ...l, what: `plaza ${l.what}` })),
   ];
   // Three bridge lanterns, not four: the trunk's landing end is the spawn
@@ -598,6 +598,18 @@ console.log('plaza gate, the fishing spot), against the ground, the road and the
       check(`${item.what} clears the deck's kerb, bow and paddles included`,
         Math.abs(across) - reach >= BRIDGE.width / 2 + 0.5,
         `centre ${Math.abs(across).toFixed(2)}, reach ${reach.toFixed(2)}, kerb ${(BRIDGE.width / 2).toFixed(2)}`);
+      continue;
+    }
+    if (item.tip) {
+      // The rod: planted on the bank above the waterline, its tip over
+      // the water (guard made to fail: the walk turned off puts the tip on
+      // the bank).
+      const tipH = ground.heightAt(...item.tip);
+      const buttH = ground.heightAt(...item.butt);
+      check(`${item.what} is planted above the waterline`, buttH > WATER_SURFACE + 0.05, `butt h ${buttH.toFixed(3)}`);
+      check(`${item.what} hangs its tip over the water`, tipH <= WATER_SURFACE, `tip ground ${tipH.toFixed(3)}`);
+      check(`${item.what} is off the road`, distanceToRoutes(item.x, item.z) > ROAD.half + 0.3);
+      check(`${item.what} is off every deck`, coverAt(bridges, item.x, item.z) < 1);
       continue;
     }
     // On the plaza disc the ground is the flat swept plaza (|h| ≤ 0.05

@@ -1036,14 +1036,13 @@ layer.
 of 6 September 2026 with the site live at michaelyeh.dev and drivable on a
 phone:
 
-1. **Michael's drive on the art pass's first round** (6 Sep, late):
-   lanterns, the fishing spot, the camp, the plaza gate; whether the
-   lantern's pane reads bright enough at night; and whether the
+1. **The art pass, round two** — the prepped rail fences and sundial once
+   they have a place, and any further CC0 or CC-BY packs Michael finds (a
+   dock or pier, benches, a well or windmill, a market stall, a tent, a
+   mailbox are the holes worth filling; a rowboat landed 7 Sep), through
+   the retint tool as before. Still unjudged from round one: whether the
+   lantern's pane reads bright enough at night, and whether the
    channel-head ford on the career road should stay a ford.
-2. **The art pass, round two** — the prepped rail fences and sundial once
-   they have a place, and any further CC0/CC-BY packs Michael finds (a
-   rowboat or dock, benches, a well or windmill, a market stall, a tent
-   are the holes worth filling), through the retint tool as before.
 3. **The plaza in portrait** (`KNOWN-ISSUES.md` 23), a design call for the
    phone: tighten the arc or let a portrait visitor drive along it.
 4. **Pitch extras** when he asks: a score, a second goal.

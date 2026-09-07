@@ -92,7 +92,8 @@ export default class Wayfinding {
     // module cycle through `Terrain`).
     const plazaRoad = this.plan.routes.find((r) => r.id === 'landing-projects');
     const avoid = this.plan.signposts.map((post) => post.at);
-    const items = [...bridgeDressing(this.bridges, { avoid }), ...roadEndLanterns(plazaRoad)];
+    const groundAt = (x, z) => this.game.terrain.heightAt(x, z);
+    const items = [...bridgeDressing(this.bridges, { avoid, groundAt }), ...roadEndLanterns(plazaRoad)];
     this.dressing = items;
     for (const item of items) {
       const model = props[item.kind];
@@ -101,6 +102,7 @@ export default class Wayfinding {
       // Afloat: the rowboat sits on the water, hull sunk its draught, not
       // on the river bed under it.
       if (item.afloat) placement.y = WATER_SURFACE - DRESSING.boatDraught;
+      if (item.tilt) { placement.tilt = item.tilt; placement.pivot = item.pivot; }
       if (item.body === false) this._placeVisual(model, placement);
       else if (item.kind === 'lanternPost') standFixedProp(this.game, model, placement);
       else standDynamicProp(this.game, model, placement);
@@ -110,10 +112,21 @@ export default class Wayfinding {
   }
 
   /** A found prop with no body — the areas' `_placeVisual`, same reasons. */
-  _placeVisual(model, { x, z, rotationY, y = null }) {
+  _placeVisual(model, { x, z, rotationY, y = null, tilt = 0, pivot = null }) {
     const clone = model.clone(true);
     clone.position.set(x, y ?? this.game.terrain.heightAt(x, z), z);
     clone.rotation.y = rotationY;
+    // A pitch about the model's own Z after the yaw, about `pivot` (a local
+    // point, the rod's butt) rather than the origin, so the butt stays on
+    // the ground where the plan put it and the tip swings out and down.
+    if (tilt) {
+      const before = pivot ? new THREE.Vector3(...pivot).applyQuaternion(clone.quaternion) : null;
+      clone.rotateZ(tilt);
+      if (before) {
+        const after = new THREE.Vector3(...pivot).applyQuaternion(clone.quaternion);
+        clone.position.sub(after.sub(before));
+      }
+    }
     this.game.objects.add({ model: clone });
   }
 

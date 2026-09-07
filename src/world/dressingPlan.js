@@ -1,5 +1,6 @@
 import { ROAD } from './wayfindingPlan.js';
 import { BRIDGE } from './bridgePlan.js';
+import { WATER_SURFACE } from './Terrain.js';
 
 /**
  * The art pass's world-level dressing, as pure arithmetic (6 Sep, late —
@@ -77,7 +78,35 @@ export const DRESSING = Object.freeze({
    *  hull is over the channel, half a unit deep beside the deck. */
   boatAlong: 5.0,
   boatYaw: 0.18,
-  boatDraught: 0.16,
+  /** The water is one plane at the surface, so anything of the hull under
+   *  it is drawn through: at 0.16 the ripples ran across the boat's floor
+   *  (Michael: "the boat looks like its sinking"). The floor planks top out
+   *  0.13 up the hull; 0.03 keeps the plane under them. */
+  boatDraught: 0.03,
+  /**
+   * The rod hangs over the water (Michael, 7 Sep): the plan walks from the
+   * bank toward the channel to find the waterline and plants the rod this
+   * far short of it, leaning out, so the tip (0.92 out at 1.7 up) is over
+   * the water wherever the bank turns out to be. Needs `groundAt`; without
+   * it the rod stands at `rodBack` on the flat bank as before.
+   */
+  /**
+   * The rod model, measured off the prepped GLB (a vertex grid, 7 Sep): the
+   * butt rests on the ground at local x −0.92 and the shaft rises toward
+   * +X to the tip at (−0.2, 1.6) — a 30° lean, a rod propped on a stick.
+   * The first placement pointed −X at the water, which put the butt over
+   * the water and the tip over land (Michael: "the line in the water and
+   * the rod on land?"; there is no line on the model — the white curves in
+   * the screenshots were the wind lines). Now +X points at the water, the
+   * butt is planted `rodButtInland` short of the waterline, and the rod is
+   * pitched `rodTilt` about the butt so the tip sits 1.22 out and 1.26 up
+   * (46° from the ground: at 36° the fixed camera read it as lying on the
+   * sand): from the butt, 0.8 over the water.
+   */
+  rodButt: 0.92,
+  rodButtInland: 0.45,
+  rodTilt: -0.35,
+  rodTipReach: 1.22,
 });
 
 const UP_SCREEN = [-Math.SQRT1_2, -Math.SQRT1_2];
@@ -94,6 +123,25 @@ export function upScreenPerp(ux, uz) {
 }
 
 /**
+ * The direction a leaning rod reads best in: along the screen's horizontal
+ * axis (world (√½, −√½), decision 16's fixed camera), signed toward the
+ * water. A rod leaning straight at the water on the career crossing
+ * leaned toward the camera too, and at 45° elevation its rise and its
+ * approach cancelled — it projected as lying on the sand at any pitch.
+ * Leaning across the screen instead, the rise shows and the tip still
+ * goes out over the channel (0.95 of its reach along the water direction
+ * here). Falls back to the water direction itself if the channel runs
+ * too close to the camera axis for the screen lean to reach it.
+ */
+export function readableLean(ux, uz) {
+  const rx = Math.SQRT1_2;
+  const rz = -Math.SQRT1_2;
+  const dot = rx * ux + rz * uz;
+  if (Math.abs(dot) < 0.5) return [ux, uz];
+  return dot > 0 ? [rx, rz] : [-rx, -rz];
+}
+
+/**
  * The yaw that points a model's local +X at a world point — the lantern
  * hangs off its post along +X, so this hangs it toward the road. A yaw θ
  * about Y maps local +X to (cos θ, 0, −sin θ).
@@ -107,7 +155,7 @@ export function hangToward(x, z, tx, tz) {
  * @returns {{ what: string, kind: string, x: number, z: number, heading: number, bridge: string }[]}
  *   `kind` is the prop file (`lanternPost`, `fishingRod1`, `bucket`).
  */
-export function bridgeDressing(bridges, { avoid = [], clearance = DRESSING.postClearance } = {}) {
+export function bridgeDressing(bridges, { avoid = [], clearance = DRESSING.postClearance, groundAt = null } = {}) {
   const items = [];
   for (const bridge of bridges) {
     const ux = Math.sin(bridge.heading);
@@ -153,26 +201,45 @@ export function bridgeDressing(bridges, { avoid = [], clearance = DRESSING.postC
       });
 
       // Down-screen of the near end (the route's start side): the camera side.
-      const along = -(half + DRESSING.rodBack);
-      const rx = bridge.at[0] + ux * along;
-      const rz = bridge.at[1] + uz * along;
-      const rod = { x: rx - px * DRESSING.rodAside, z: rz - pz * DRESSING.rodAside };
+      let buttAlong = -(half + DRESSING.rodBack);
+      let lean = [-ux, -uz]; // away from the deck, over nothing: the fallback
+      if (groundAt) {
+        // Walk from the deck end toward the channel on the rod's line
+        // until the ground goes under the water: that is the waterline.
+        const lx = bridge.at[0] - px * DRESSING.rodAside;
+        const lz = bridge.at[1] - pz * DRESSING.rodAside;
+        let s = -half;
+        while (s < half && groundAt(lx + ux * s, lz + uz * s) > WATER_SURFACE) s += 0.1;
+        buttAlong = s - DRESSING.rodButtInland;
+        lean = readableLean(ux, uz);
+      }
+      const rbx = bridge.at[0] + ux * buttAlong - px * DRESSING.rodAside;
+      const rbz = bridge.at[1] + uz * buttAlong - pz * DRESSING.rodAside;
+      // The model's origin is `rodButt` along +X from the butt, so the
+      // origin stands that far past the butt toward the water.
+      const rod = { x: rbx + lean[0] * DRESSING.rodButt, z: rbz + lean[1] * DRESSING.rodButt };
       items.push({
         what: 'fishing rod', kind: 'fishingRod1', ...rod,
-        // The rod leans along its local −X; lean it out over the water.
-        heading: hangToward(rod.x, rod.z, rx, rz) + Math.PI,
+        // The shaft rises toward local +X: point +X at the water.
+        heading: hangToward(rod.x, rod.z, rod.x + lean[0], rod.z + lean[1]),
+        // Pitched about the butt, after the yaw, to lie out over the water.
+        tilt: groundAt ? DRESSING.rodTilt : 0,
+        pivot: [-DRESSING.rodButt, 0, 0],
+        butt: [rbx, rbz],
+        tip: [rbx + lean[0] * DRESSING.rodTipReach, rbz + lean[1] * DRESSING.rodTipReach],
         bridge: bridge.id,
         // A visual, no body: a rod is 1.7 tall on a 0.26 base, and as a
         // knockable box it lay down at the first physics hiccup (Michael
         // saw it fall at spawn). Signage you drive through, like the posts.
         body: false,
       });
-      // Beside the rod, a step back from the water on the flat bank (toward
-      // the water it stood on the bank slope at −0.08, swept).
+      // Beside the butt, two steps back from the water onto the flat bank
+      // (at one step it stood on the slope at −0.12, swept).
+      const back = groundAt ? [ux, uz] : lean;
       items.push({
         what: 'bucket', kind: 'bucket',
-        x: rod.x - px * DRESSING.bucketAside - ux * 0.5,
-        z: rod.z - pz * DRESSING.bucketAside - uz * 0.5,
+        x: rbx - px * DRESSING.bucketAside - back[0] * 1.9,
+        z: rbz - pz * DRESSING.bucketAside - back[1] * 1.9,
         heading: 0.7,
         bridge: bridge.id,
       });
