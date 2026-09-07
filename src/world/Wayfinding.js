@@ -4,6 +4,8 @@ import { COLOR, paint } from '../render/palette.js';
 import { WATER_SURFACE, bridgesPlan } from './Terrain.js';
 import { wayfindingPlan } from './wayfindingPlan.js';
 import { BRIDGE } from './bridgePlan.js';
+import { bridgeDressing, roadEndLanterns } from './dressingPlan.js';
+import { standFixedProp, standDynamicProp } from './props.js';
 
 /** The island's ground friction (`Island.js`), so a deck drives like the road it carries. */
 const GROUND_FRICTION = 0.2;
@@ -65,11 +67,51 @@ export default class Wayfinding {
     for (const post of this.plan.signposts) this._buildPost(post);
     this._assertDryFlat();
     const bridges = this._buildBridges();
+    const dressing = this._buildDressing();
     console.info(
       `[wayfinding] ${this.plan.signposts.length} signposts, ${bridges} bridges, ` +
-        `${(performance.now() - startedAt).toFixed(2)} ms`
+        `${dressing} props, ${(performance.now() - startedAt).toFixed(2)} ms`
     );
     return this.group;
+  }
+
+  /**
+   * The bridges' dressing (the art pass, 6 Sep late): a lantern post at each
+   * deck end as a fixed body — a light you drive past, not one you carry
+   * off — and the fishing spot's rod and bucket as the reference's knockable
+   * props. Positions are `dressingPlan.bridgeDressing`'s, swept by the suite.
+   */
+  _buildDressing() {
+    const props = this.game.props;
+    if (!props?.lanternPost || !this.bridges) return 0;
+    let count = 0;
+    // The plaza gate: two lanterns where the landing road arrives at the
+    // disc, so the road reads as arriving somewhere and the plaza has a lit
+    // gate at night. World-level with the bridges' lanterns — a road end is
+    // the road's business (and `ProjectsArea` importing the plan closed a
+    // module cycle through `Terrain`).
+    const plazaRoad = this.plan.routes.find((r) => r.id === 'landing-projects');
+    const avoid = this.plan.signposts.map((post) => post.at);
+    const items = [...bridgeDressing(this.bridges, { avoid }), ...roadEndLanterns(plazaRoad)];
+    this.dressing = items;
+    for (const item of items) {
+      const model = props[item.kind];
+      if (!model) continue;
+      const placement = { x: item.x, z: item.z, rotationY: item.heading };
+      if (item.body === false) this._placeVisual(model, placement);
+      else if (item.kind === 'lanternPost') standFixedProp(this.game, model, placement);
+      else standDynamicProp(this.game, model, placement);
+      count++;
+    }
+    return count;
+  }
+
+  /** A found prop with no body — the areas' `_placeVisual`, same reasons. */
+  _placeVisual(model, { x, z, rotationY }) {
+    const clone = model.clone(true);
+    clone.position.set(x, this.game.terrain.heightAt(x, z), z);
+    clone.rotation.y = rotationY;
+    this.game.objects.add({ model: clone });
   }
 
   /**

@@ -99,12 +99,20 @@ export const BRIDGE = Object.freeze({
    *  off the source (planks at 0.60–0.70, uneven on purpose); the collider
    *  tops out here and the higher planks poke a few cm through it. */
   deck: 0.65,
-  /** Deck top, world y. */
-  deckY: -0.1,
-  /** How far the ground must rise above the deck before the deck may end —
-   *  the collision heightfield is a 1.5-unit grid that can sit a few cm
-   *  under the smooth field, and a deck end level with it would lip. */
-  endRise: 0.06,
+  /**
+   * Deck top, world y. **−0.03 since 6 Sep late** (Michael, on the drive:
+   * "some of the bridges is like in the ground and looks kind of weird"):
+   * at −0.10 the deck ran level into a bank that climbed 0.1 above it, so
+   * the last stretch of planks disappeared under the turf. At −0.03 the
+   * deck top is flush with the bank — the planks read as laid into the
+   * ground at the end, the way a gangplank rests on a bank — and 0.27
+   * above the water. A wheel leaving the deck drops at most 3 cm.
+   */
+  deckY: -0.03,
+  /** How far the ground must rise above the deck before the deck may end.
+   *  With the deck 3 cm under the flat bank (0), 0.02 ends the deck where
+   *  the bank is within a centimetre of its top. */
+  endRise: 0.02,
   /** Buried run past that point, each end: the pontoon's ends go into the
    *  bank rather than stopping at it. */
   margin: 0.5,

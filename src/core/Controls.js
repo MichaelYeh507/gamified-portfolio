@@ -74,7 +74,12 @@ export default class Controls {
       if (this.isOpen) return;
       this.panel.classList.add('is-fading');
       this._fadeTimer = setTimeout(() => {
-        if (!this.isOpen) this.panel.hidden = true;
+        if (this.isOpen) return;
+        this.panel.hidden = true;
+        // The sheet has had its say; now the map gets its one pointer
+        // (`FastTravel.nudge`, 6 Sep late) — after, not alongside, so the
+        // corner never carries two things asking for attention.
+        this.game.fastTravel?.nudge();
       }, 1000);
     }, seconds * 1000);
   }
@@ -106,6 +111,9 @@ export default class Controls {
       this._returnFocusTo.focus();
     }
     this._returnFocusTo = null;
+    // Opened as the menu before the launch sheet faded: the nudge still
+    // comes after the controls, so it comes now (once — `nudge` remembers).
+    this.game.fastTravel?.nudge();
   }
 
   toggle() {

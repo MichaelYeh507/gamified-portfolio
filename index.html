@@ -71,6 +71,16 @@
          drawn from the island's own terrain data and turned to the screen.
          M toggles; a pin is a real button. -->
     <button id="map-button" class="ui-button map-button" type="button" aria-label="Map" aria-expanded="false" hidden>map <span class="key" aria-hidden="true">M</span></button>
+    <!-- The map nudge (6 Sep late, Michael: "after the controls menu go
+         away, could we have a like a animated attention grabbing pointer to
+         the map telling people they can teleport"): one line and a bobbing
+         arrow over the map pill, shown once when the launch sheet has faded,
+         gone at the first map open or after its own timer
+         (`core/FastTravel.js` `nudge()`). A button: tapping it opens the map. -->
+    <button id="map-nudge" class="map-nudge" type="button" hidden>
+      <span class="map-nudge__label">Teleport anywhere from the map</span>
+      <span class="map-nudge__arrow" aria-hidden="true"></span>
+    </button>
 
     <!-- Touch (`core/TouchStick.js`, 3 Sep): the canvas itself is the stick,
          anchored at the car, and these two are the verbs a thumb cannot

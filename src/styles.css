@@ -404,6 +404,67 @@ body {
   right: 11.2rem;
 }
 
+/*
+ * The map nudge: a line of amber type and a bobbing arrow pointing down at
+ * the map pill, above it and right-aligned to it, shown once after the
+ * launch sheet fades. Amber like the pill it points at and the in-world
+ * signage, a shadow so it reads over water and sand, a bob rather than a
+ * pulse (the beacon already pulses). Reduced motion: it stands still.
+ */
+.map-nudge {
+  position: fixed;
+  right: 11.2rem;
+  bottom: 4.4rem;
+  z-index: 16;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--amber);
+  text-shadow: 0 1px 2px var(--void), 0 0 10px rgba(5, 7, 12, 0.9);
+  cursor: pointer;
+  animation: map-nudge-bob 1.1s ease-in-out infinite;
+  transition: opacity 600ms ease;
+}
+
+.map-nudge[hidden] {
+  display: none;
+}
+
+.map-nudge.is-fading {
+  opacity: 0;
+}
+
+.map-nudge:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* The arrow: a chevron drawn with borders, pointing down at the pill's
+ * middle — sits a little in from the label's right edge. */
+.map-nudge__arrow {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 2.2rem;
+  border-right: 3px solid var(--amber);
+  border-bottom: 3px solid var(--amber);
+  transform: rotate(45deg);
+  filter: drop-shadow(0 1px 2px var(--void));
+}
+
+@keyframes map-nudge-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.45rem); }
+}
+
 /* Centred over a scrim, the car paused: a menu you click a place on. */
 .map {
   position: fixed;
@@ -867,5 +928,9 @@ body {
   #loader,
   .hint {
     transition-duration: 1ms;
+  }
+
+  .map-nudge {
+    animation: none;
   }
 }

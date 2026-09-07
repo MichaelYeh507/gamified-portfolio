@@ -362,10 +362,17 @@ export default class Game {
     // 'crate' and 'haystack' joined 2 Sep for the plaza's dressing — prepped
     // and credited with the pack on 31 Aug, unused until then.
     // 'pontoon' (6 Sep, the human-props pack) is the bridge `Wayfinding`
-    // stands over every ford — one model, stretched to each span.
+    // stands over every ford — one model, stretched to each span. The rest
+    // of that pack joined the same evening for the art pass's first round:
+    // lanterns at the bridges and the plaza gate, kegs, a cube crate, a
+    // bucket and fishing rods at the fire circle and the fishing spot
+    // (`dressingPlan`, `contactPlan.camp`). The pack's rail fences and
+    // sundial are prepped (`railFence1..3`, `sundial`) and wait for a
+    // placement before they are loaded — nothing ships that nothing stands.
     const DRESSING_FILES = [
       'fence', 'cart', 'barrel', 'streetlight', 'bonfire', 'logPlain', 'logPine',
       'crate', 'haystack', 'pontoon',
+      'lanternPost', 'keg', 'crateCube', 'bucket', 'fishingRod1', 'fishingRod2',
     ];
     const found = await this.resourcesLoader.load([
       ...['lampPost', 'carBuggy', ...SHRUB_FILES, ...FLORA_FILES, ...ROCK_FILES,

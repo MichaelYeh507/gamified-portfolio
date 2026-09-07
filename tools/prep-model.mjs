@@ -369,6 +369,40 @@ export const RECIPES = {
         output: 'public/models/pontoon.glb', include: ['Pontoon'],
         targetHeight: 1.4, footprint: [4.6, 10.7], origin: 'bbox',
       },
+      /**
+       * The art pass (6 Sep, late — Michael: "improve the art / map a bit
+       * more later to make it look better and like it has more content").
+       * Heights sized against the neighbours each will stand with: the
+       * medieval fence is 1.05 and the rail panels match it; the keg is a
+       * hair under the medieval barrel (0.95); the cube crate under the
+       * medieval crate (0.8); the lantern post at 2.0 sits between the
+       * streetlight (2.6) and the car's roof (1.2) — a lantern, not a
+       * streetlight; the rods are real-rod length; the bucket is a bucket.
+       */
+      railFence1: { output: 'public/models/railFence1.glb', include: ['Fence_1'], targetHeight: 1.05 },
+      railFence2: { output: 'public/models/railFence2.glb', include: ['Fence_2'], targetHeight: 1.05 },
+      railFence3: { output: 'public/models/railFence3.glb', include: ['Fence_3'], targetHeight: 1.05 },
+      keg: { output: 'public/models/keg.glb', include: ['Barrel'], targetHeight: 0.85 },
+      crateCube: { output: 'public/models/crateCube.glb', include: ['Crate'], targetHeight: 0.7 },
+      bucket: { output: 'public/models/bucket.glb', include: ['Bucket'], targetHeight: 0.4 },
+      fishingRod1: { output: 'public/models/fishingRod1.glb', include: ['Rod_1'], targetHeight: 1.7 },
+      fishingRod2: { output: 'public/models/fishingRod2.glb', include: ['Rod_2'], targetHeight: 1.5 },
+      /**
+       * The lantern post: a thin wooden post with a metal lantern hung off
+       * a bracket. Nothing in it is amber — the glass is a grey pane
+       * (#949494, 14 triangles at 0.67–0.70 of the height) — so the pane is
+       * moved onto the emissive band by **source colour**, the new
+       * `colorOverrides` word: a snap override keyed by the sampled atlas
+       * colour rather than the material name, because this pack has one
+       * material for everything. The lantern joins the night layer with the
+       * lamp chambers and the streetlight glass.
+       */
+      lanternPost: {
+        output: 'public/models/lanternPost.glb', include: ['Lamp_1'], targetHeight: 2.0,
+        colorOverrides: { '#949494': { color: 'amber', material: 'paletteEmissive' } },
+      },
+      /** Stone dial, gold face — the plaza's centrepiece candidate. */
+      sundial: { output: 'public/models/sundial.glb', include: ['Sundial'], targetHeight: 0.9 },
     },
   },
 };
@@ -394,6 +428,21 @@ export function nearestBand(rgb) {
     if (d < bestD) { bestD = d; best = i; }
   }
   return { index: best, distance: bestD };
+}
+
+/** How close (sRGB distance) a sampled colour must sit to a `colorOverrides`
+ *  key to take it — tight, so a grey pane is caught and grey metal is not. */
+const COLOR_OVERRIDE_TOLERANCE = 0.03;
+
+function colorOverride(recipe, rgb) {
+  if (!recipe.colorOverrides) return null;
+  for (const [hex, entry] of Object.entries(recipe.colorOverrides)) {
+    const key = sRGB(hex);
+    if (Math.hypot(rgb[0] - key[0], rgb[1] - key[1], rgb[2] - key[2]) <= COLOR_OVERRIDE_TOLERANCE) {
+      return typeof entry === 'string' ? { color: entry } : entry;
+    }
+  }
+  return null;
 }
 
 const bandIndex = (name) => {
@@ -735,6 +784,12 @@ function assign(recipe, positions, triangles, componentOf) {
     }
 
     if (recipe.snapColors && t.color) {
+      // An override by SOURCE colour, for one-material atlas packs where a
+      // material name cannot single out a part: the nearest listed hex
+      // within `COLOR_OVERRIDE_TOLERANCE` wins (the lantern pane).
+      const byColor = colorOverride(recipe, t.color);
+      if (byColor) return { band: bandIndex(byColor.color), material: byColor.material ?? 'palette' };
+
       const { index, distance } = nearestBand(t.color);
       // A recipe may loosen the tolerance for deliberately fantastic colours
       // (the mushroom caps); the default stays tight so a palette gap keeps

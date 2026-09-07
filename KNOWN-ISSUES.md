@@ -1520,6 +1520,14 @@ on the phone itself — that is Michael's next look at the live URL.
   respawn — where before it forded. The two roads' other wet spot, the
   channel-head skim, is untouched (`check-wayfinding` proves it identical
   with and without bridges).
+- **Seen once, not reproduced: the water rendered flat navy** (6 Sep, late,
+  two MCP screenshots at the deck ends after a session that had opened the
+  map by key, shown the launch sheet and the nudge, and respawned the car
+  several times; the land was lit as day). A reload and the same sequences
+  — map open and close by call and by `M`, respawns, the nudge — gave teal
+  every time. Recorded so a "the river went dark" report has a lead: the
+  water's tint follows the day cycle and the reveal, and something in that
+  sequence left it at night while the ground stayed at day.
 - **The third carved span on the career road carries no bridge**
   (`bridgePlan`, 6 Sep). The road skims the head of a southern channel:
   the centreline never gets wet, one edge sits in 0.02 of water, the other

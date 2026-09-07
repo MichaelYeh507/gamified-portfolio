@@ -571,6 +571,23 @@ on the grass, and it stays a ford (a deck there would beach on the lawn).
 Driven headless: the chassis dips the 10 cm onto the deck and back with no
 vertical spike. Michael's drive verdict is pending.
 
+**The art pass, round one (6 Sep, late).** The rest of the same pack
+through the retint tool: a lantern post at each bridge end and a pair as a
+gate before the plaza (its grey glass pane moved onto the emissive band by
+a new colour-keyed override in the recipe, so every crossing is a light at
+night), a fishing spot on the bank by the trunk bridge, a camp of kegs, a
+bucket and a leaning rod at the contact fire, a keg and a cube crate on the
+plaza rim. Every placement is a pure plan the suites sweep for dry flat
+ground, clearance from the roads, the decks and the signposts; three misses
+were caught by the sweep before anyone saw them. Rail fences and a sundial
+are prepped and wait for a placement. From Michael's first drive, the same
+night: the deck top is flush with the banks now instead of running under
+them, the rods are visuals rather than bodies that lie down at the first
+physics hiccup, the fishing spot moved out of the spawn's first drive, and
+**the map nudge** landed: once the launch sheet has faded, one line and a
+bobbing chevron over the map pill say the map teleports, gone at the first
+open or after twelve seconds.
+
 Not done yet: toasts (deferred by Michael), the playground (designated
 cut), the foliage sprite material, audio, the `availability` line when
 Michael writes it.
@@ -1011,13 +1028,14 @@ layer.
 of 6 September 2026 with the site live at michaelyeh.dev and drivable on a
 phone:
 
-1. **Michael's drive on the bridges** (landed 6 Sep, evening, water under
-   the decks on his call): the pontoon's look, and whether the
+1. **Michael's drive on the art pass's first round** (6 Sep, late):
+   lanterns, the fishing spot, the camp, the plaza gate; whether the
+   lantern's pane reads bright enough at night; and whether the
    channel-head ford on the career road should stay a ford.
-2. **The art pass** — more content and a better-looking map, on Michael's
-   note — from the same pack's fences, barrels, crates and lamps through
-   the retint tool, and his drive verdict on the look calls still only
-   screenshot-judged.
+2. **The art pass, round two** — the prepped rail fences and sundial once
+   they have a place, and any further CC0/CC-BY packs Michael finds (a
+   rowboat or dock, benches, a well or windmill, a market stall, a tent
+   are the holes worth filling), through the retint tool as before.
 3. **The plaza in portrait** (`KNOWN-ISSUES.md` 23), a design call for the
    phone: tighten the arc or let a portrait visitor drive along it.
 4. **Pitch extras** when he asks: a score, a second goal.

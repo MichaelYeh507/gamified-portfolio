@@ -42,6 +42,10 @@ const SQ = Math.SQRT1_2;
 /** What each district is called on the map. Ids are `content/areas.js`. */
 const NAMES = { landing: 'Start', projects: 'Projects', career: 'Career', contact: 'Contact' };
 
+/** How long the map nudge bobs before it fades on its own. Long enough to
+ *  be noticed by someone mid-drive, short enough never to be furniture. */
+const NUDGE_SECONDS = 12;
+
 /** World XZ → map UV (0..1), up-screen at the top. */
 export function worldToMap(x, z) {
   return {
@@ -75,6 +79,14 @@ export default class FastTravel {
 
     this.button.hidden = false;
     this.button.addEventListener('click', () => this.toggle());
+
+    // The nudge (6 Sep late): the pointer over the pill that says the map
+    // teleports. Shown once by `Controls` when the launch sheet has faded,
+    // gone at the first open or after `NUDGE_SECONDS`; a tap on it opens.
+    this.nudgeEl = document.getElementById('map-nudge');
+    this._nudged = false;
+    this._nudgeTimer = 0;
+    this.nudgeEl?.addEventListener('click', () => this.open());
     this.panel.querySelector('.map__close')?.addEventListener('click', () => this.close());
 
     game.input.on('action', (name, value) => {
@@ -175,9 +187,36 @@ export default class FastTravel {
     });
   }
 
+  /**
+   * Point at the map once, after the launch sheet has had its say
+   * (Michael, 6 Sep late: "after the controls menu go away, could we have a
+   * like a animated attention grabbing pointer to the map telling people
+   * they can teleport"). Once per visit: a nudge that came back would be a
+   * nag. Nothing to point at if the map is already open.
+   */
+  nudge(seconds = NUDGE_SECONDS) {
+    if (!this.nudgeEl || this._nudged) return;
+    this._nudged = true;
+    if (this.isOpen) return;
+    this.nudgeEl.classList.remove('is-fading');
+    this.nudgeEl.hidden = false;
+    clearTimeout(this._nudgeTimer);
+    this._nudgeTimer = setTimeout(() => this._hideNudge(), seconds * 1000);
+  }
+
+  _hideNudge() {
+    if (!this.nudgeEl || this.nudgeEl.hidden) return;
+    clearTimeout(this._nudgeTimer);
+    this.nudgeEl.classList.add('is-fading');
+    this._nudgeTimer = setTimeout(() => {
+      this.nudgeEl.hidden = true;
+    }, 650);
+  }
+
   open() {
     if (!this.panel || this.isOpen) return;
     if (this.game.mode !== 'driving') return;
+    this._hideNudge();
     if (!this._pinsBuilt) {
       this._paint();
       this._buildPins();

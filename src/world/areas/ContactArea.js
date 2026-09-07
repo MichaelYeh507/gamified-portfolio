@@ -269,6 +269,14 @@ export default class ContactArea extends Area {
     this._placeVisual(props.bonfire, fire, 0);
     standDynamicProp(this.game, props.logPlain, { x: logs[0].x, z: logs[0].z, rotationY: Math.PI * 0.35 });
     standDynamicProp(this.game, props.logPine, { x: logs[1].x, z: logs[1].z, rotationY: -Math.PI * 0.2 });
+
+    // The camp (the art pass, 6 Sep late): kegs, a bucket and a leaning rod
+    // from the human-props pack, all knockable, positions in `contactPlan`.
+    for (const item of this.plan.camp ?? []) {
+      if (!props[item.kind]) continue;
+      if (item.body === false) this._placeVisual(props[item.kind], item, item.rotationY);
+      else standDynamicProp(this.game, props[item.kind], { x: item.x, z: item.z, rotationY: item.rotationY });
+    }
   }
 
   /** A found prop with no body — the corridor's `_placeVisual`, same reasons. */

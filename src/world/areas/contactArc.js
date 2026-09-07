@@ -152,14 +152,29 @@ export function contactPlan(center, links) {
 
   const spawn = arcPoint(center, -Math.PI / 2, SPAWN_BACK);
 
+  /**
+   * The camp (the art pass, 6 Sep late): two kegs stacked by one log seat,
+   * a bucket and a leaning fishing rod by the other — outside the seats on
+   * the same camera side, inside the arc, off the spawn's approach line.
+   */
+  const camp = [
+    { what: 'keg 0', kind: 'keg', ...arcPoint(center, -Math.PI / 2 - 1.0, 3.6), rotationY: 0.4 },
+    { what: 'keg 1', kind: 'keg', ...arcPoint(center, -Math.PI / 2 - 1.2, 4.3), rotationY: 1.3 },
+    { what: 'bucket', kind: 'bucket', ...arcPoint(center, -Math.PI / 2 + 1.0, 3.5), rotationY: 0.2 },
+    // The rod is a visual, no body — tall and thin, it lay down at the first
+    // physics hiccup as a knockable box (the fishing spot's lesson).
+    { what: 'fishing rod', kind: 'fishingRod2', ...arcPoint(center, -Math.PI / 2 + 1.2, 4.2), rotationY: -0.9, body: false },
+  ];
+
   const points = [
     { what: 'fire', ...fire },
     ...logs.map((at, i) => ({ what: `log ${i}`, ...at })),
+    ...camp.map((c) => ({ what: `camp ${c.what}`, x: c.x, z: c.z })),
     ...cards.map((c) => ({ what: `card ${c.link.slug}`, x: c.x, z: c.z })),
     ...icons.map((c) => ({ what: `icon ${c.link.slug}`, x: c.x, z: c.z })),
     ...prompts.map((p) => ({ what: `prompt ${p.link.slug}`, x: p.x, z: p.z })),
     { what: 'spawn', ...spawn },
   ];
 
-  return { cards, icons, prompts, fire, logs, spawn, points };
+  return { cards, icons, prompts, fire, logs, camp, spawn, points };
 }

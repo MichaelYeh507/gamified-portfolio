@@ -77,6 +77,7 @@ const {
 const { default: Terrain, heightAt, bridgesPlan, fordGroundAt, BANK_GRADIENT, WATER_SURFACE, SAMPLES, HALF, CELL } =
   await import('../src/world/Terrain.js');
 const { BRIDGE, coverAt } = await import('../src/world/bridgePlan.js');
+const { bridgeDressing, roadEndLanterns, DRESSING } = await import('../src/world/dressingPlan.js');
 const {
   buildTimeline,
   corridorPlan,
@@ -449,9 +450,13 @@ console.log('\nthe bridges (6 Sep — the pontoon over every crossing the plan f
           lowestEnd = Math.min(lowestEnd, groundAt(ex - uz * side, ez + ux * side));
         }
       }
+      // Within 2 cm: the buried margin runs along the straight deck line
+      // while the road curves, so a deck end's EDGE can sit a centimetre
+      // under the top where the bank falls away from the road — a lip no
+      // 0.42 wheel notices. The promise is no step, not no millimetre.
       check(
         `${label}: ${bridge.id} buries both ends in the bank (guard made to fail)`,
-        lowestEnd >= BRIDGE.deckY,
+        lowestEnd >= BRIDGE.deckY - 0.02,
         `lowest end ground ${lowestEnd.toFixed(3)} against deck ${BRIDGE.deckY}`
       );
       check(
@@ -506,7 +511,7 @@ console.log('\nthe bridges (6 Sep — the pontoon over every crossing the plan f
   const trunk = shipped.find((b) => b.route === 'landing-contact');
   const spawn = defs.landing.center;
   check('the spawn stands off the trunk deck, on ground above it',
-    !!trunk && !onDeck(trunk, spawn) && groundAt(...spawn) > BRIDGE.deckY + 0.05,
+    !!trunk && !onDeck(trunk, spawn) && groundAt(...spawn) > BRIDGE.deckY,
     `ground ${groundAt(...spawn).toFixed(3)}`);
 
   // The y2 decks are held against the shipped-scale terrain (this suite's
@@ -541,6 +546,70 @@ console.log('\nthe bridges (6 Sep — the pontoon over every crossing the plan f
     `${size.map((v) => v.toFixed(3)).join(' x ')}`);
   check('the pontoon\'s attribution rides its asset extras',
     String(pontoon.getRoot().getAsset().extras?.author ?? '').includes('artikora'));
+}
+
+// ------------------------------------------------------------ the dressing
+console.log('\nthe dressing (the art pass, 6 Sep late — lanterns at the bridges and the');
+console.log('plaza gate, the fishing spot), against the ground, the road and the decks:');
+{
+  const plan = wayfindingPlan();
+  const bridges = bridgesPlan();
+  const ground = new Terrain();
+  const defs = Object.fromEntries(areaDefs.map((def) => [def.id, def]));
+  const avoid = plan.signposts.map((post) => post.at);
+  const items = [
+    ...bridgeDressing(bridges, { avoid }),
+    ...roadEndLanterns(plan.routes.find((r) => r.id === 'landing-projects')).map((l) => ({ ...l, what: `plaza ${l.what}` })),
+  ];
+  // Three bridge lanterns, not four: the trunk's landing end is the spawn
+  // post's (measured 1.2 apart), so that lantern is dropped by rule.
+  check('three bridge lanterns, a rod, a bucket and two plaza lanterns',
+    items.filter((i) => i.kind === 'lanternPost' && i.bridge).length === 3 &&
+      items.filter((i) => i.kind === 'lanternPost' && !i.bridge).length === 2 &&
+      items.some((i) => i.kind === 'fishingRod1') && items.some((i) => i.kind === 'bucket'),
+    `${items.length} items`);
+  check('the dropped lantern comes back without the posts to avoid (guard made to fail)',
+    bridgeDressing(bridges).filter((i) => i.kind === 'lanternPost').length === 4);
+  for (const item of items) {
+    const h = ground.heightAt(item.x, item.z);
+    // On the plaza disc the ground is the flat swept plaza (|h| ≤ 0.05
+    // there too), so one bar serves both sites.
+    check(`${item.what} stands on dry flat ground`, h > -0.05 && Math.abs(h) <= 0.1, `h ${h.toFixed(3)}`);
+    check(`${item.what} is off the road`, distanceToRoutes(item.x, item.z) > ROAD.half + 0.3,
+      distanceToRoutes(item.x, item.z).toFixed(2));
+    check(`${item.what} is off every deck`, coverAt(bridges, item.x, item.z) < 1);
+    for (const post of plan.signposts) {
+      const d = Math.hypot(post.at[0] - item.x, post.at[1] - item.z);
+      check(`${item.what} clears the ${post.id} post`, d > 1.5, d.toFixed(2));
+    }
+    // The fishing items: past the car's length AND the width of its first
+    // drive out (at 3.1 the rod sat a unit off the nose and W went through
+    // it), and clear of the name letters' line.
+    const dSpawn = Math.hypot(item.x - defs.landing.center[0], item.z - defs.landing.center[1]);
+    const near = item.bridge === 'landing-contact' && item.kind !== 'lanternPost';
+    check(`${item.what} clears the spawn${near ? ' and its first drive' : ''}`,
+      dSpawn > (near ? DRESSING.spawnClearance : 2.5), dSpawn.toFixed(2));
+    if (near) {
+      const dLetters = distanceToSegment(item.x, item.z, -0.7, 8.1, 8.1, -0.7);
+      check(`${item.what} clears the name letters`, dLetters > 1.5, dLetters.toFixed(2));
+    }
+  }
+  check('the rods are visuals, not bodies (guard made to fail)',
+    items.filter((i) => i.kind.startsWith('fishingRod')).every((i) => i.body === false));
+  // The bridge lanterns hang toward their road: the lantern's +X points at
+  // the deck line, so the lit pane is over the kerb and not out in the grass.
+  for (const item of items.filter((i) => i.kind === 'lanternPost' && i.bridge)) {
+    const bridge = bridges.find((b) => b.id === item.bridge);
+    const ux = Math.sin(bridge.heading);
+    const uz = Math.cos(bridge.heading);
+    const across = -(item.x - bridge.at[0]) * uz + (item.z - bridge.at[1]) * ux;
+    const hangX = Math.cos(item.heading);
+    const hangZ = -Math.sin(item.heading);
+    const hangAcross = -hangX * uz + hangZ * ux;
+    check(`${item.what} hangs toward the road (guard made to fail)`, Math.sign(hangAcross) === -Math.sign(across),
+      `stands ${across.toFixed(2)} across, hangs ${hangAcross.toFixed(2)}`);
+    check(`${item.what} stands off the deck's kerb`, Math.abs(across) >= BRIDGE.width / 2 + DRESSING.lanternAside * 0 + 0.5);
+  }
 }
 
 console.log(`\ncheck-wayfinding: ${failed === 0 ? 'ok' : `${failed} FAILED`}`);

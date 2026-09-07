@@ -721,6 +721,16 @@ export default class ProjectsArea extends Area {
     standDynamicProp(this.game, props.haystack, { ...rim(-9.2, 2.6), rotationY: FACE_YAW + 0.4 });
     standDynamicProp(this.game, props.barrel, { ...rim(9.0, 2.4), rotationY: 0.3 });
     standDynamicProp(this.game, props.barrel, { ...rim(9.9, 3.3), rotationY: 1.1 });
+
+    // The art pass (6 Sep, late; the human-props pack): a keg with the
+    // barrels, a cube crate by the haystack — the same knockable rim. The
+    // two lantern posts flanking where the landing road arrives at the disc
+    // are the wayfinding layer's (`Wayfinding._buildDressing`, from
+    // `dressingPlan.roadEndLanterns`): world-level, because importing the
+    // plan here closed a module cycle through `Terrain`, and because a road
+    // end is the road's business.
+    if (props.keg) standDynamicProp(this.game, props.keg, { ...rim(8.1, 3.6), rotationY: 0.8 });
+    if (props.crateCube) standDynamicProp(this.game, props.crateCube, { ...rim(-8.0, 3.6), rotationY: FACE_YAW + 0.25 });
   }
 
   /**
