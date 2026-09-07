@@ -586,7 +586,15 @@ them, the rods are visuals rather than bodies that lie down at the first
 physics hiccup, the fishing spot moved out of the spawn's first drive, and
 **the map nudge** landed: once the launch sheet has faded, one line and a
 bobbing chevron over the map pill say the map teleports, gone at the first
-open or after twelve seconds.
+open or after twelve seconds. The morning after, Michael's first find: a
+CC-BY rowboat, a visual afloat on the water (a dock-house model was
+declined on its Sketchfab Standard licence, which forbids the file
+redistribution this public repo does by design). The whole fishing scene,
+rod, bucket and boat, then moved from the spawn to the career road's
+crossing on his call: the opening frame was too cramped. And on narrow
+touch screens the map and controls pills stack at the right edge, map
+above controls, because a phone in portrait could not fit them beside the
+boost and jump buttons in one row.
 
 Not done yet: toasts (deferred by Michael), the playground (designated
 cut), the foliage sprite material, audio, the `availability` line when

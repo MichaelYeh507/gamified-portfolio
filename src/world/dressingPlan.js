@@ -12,9 +12,11 @@ import { BRIDGE } from './bridgePlan.js';
  *    of the road (the signposts' rule: never between the camera and the
  *    road it lights), hung toward the road, so every crossing is a pair of
  *    lights at night;
- *  - **the fishing spot**: a rod leaning and a bucket on the bank beside the
- *    trunk bridge's landing end, camera-side, in the first frame a visitor
- *    sees — the one piece of pure "someone lives here" in the pack;
+ *  - **the fishing scene**: a rod leaning, a bucket and a moored rowboat on
+ *    the bank beside one bridge's near end, camera-side (`fishingBridge`;
+ *    it opened at the spawn and moved to the career crossing when the
+ *    opening frame got cramped) — the one piece of pure "someone lives
+ *    here" in the pack;
  *  - **two lanterns where a road arrives at a plaza** (`roadEndLanterns`),
  *    flanking the last sample of the route at kerb distance.
  *
@@ -48,6 +50,34 @@ export const DRESSING = Object.freeze({
   roadBack: 3.0,
   /** A bridge lantern within this of a signpost is not built. */
   postClearance: 1.5,
+  /**
+   * Which bridge gets the fishing scene (rod, bucket, rowboat). It began at
+   * the trunk bridge beside the spawn — the opening frame — and moved 7 Sep
+   * on Michael's call ("the main screen is too cramped"): the letters, the
+   * tagline, the signpost, the bridge and its lantern were already there.
+   * The career road's crossing has water both sides and nothing else near.
+   */
+  fishingBridge: 'contact-career',
+  /**
+   * The rowboat (7 Sep, Michael's find), moored beside the trunk deck on
+   * the camera side, near its landing end where the water begins: a boat's
+   * width and a bit off the kerb, turned a few degrees off the deck line
+   * so it reads as tied up rather than parked. A visual afloat on the
+   * water — props here sink (the reference's float multiplier is not
+   * ported), and a boat on the river bed is a wreck — with its hull sunk
+   * `boatDraught` into the surface.
+   */
+  /** Off the deck's edge to the boat's CENTRE. Moored along the channel the
+   *  hull points at the deck, so half its length (1.7) comes off this:
+   *  at 1.6 off the kerb the bow ended 10 cm inside it (Michael: "the
+   *  sailboat is kind of in the bridge"); at 2.6 it clears by 0.9. */
+  boatAside: BRIDGE.width / 2 + 2.6,
+  /** From the landing end toward the deck's middle: at 3.2 the hull's near
+   *  end sat on the bank shelf in 2 cm of water (swept); at 5.0 the whole
+   *  hull is over the channel, half a unit deep beside the deck. */
+  boatAlong: 5.0,
+  boatYaw: 0.18,
+  boatDraught: 0.16,
 });
 
 const UP_SCREEN = [-Math.SQRT1_2, -Math.SQRT1_2];
@@ -104,8 +134,25 @@ export function bridgeDressing(bridges, { avoid = [], clearance = DRESSING.postC
       });
     }
 
-    if (bridge.route === 'landing-contact') {
-      // Down-screen of the landing end: the camera side, in the opening frame.
+    if (bridge.route === DRESSING.fishingBridge) {
+      // The rowboat, moored alongside on the camera side over the water.
+      const bAlong = -half + DRESSING.boatAlong;
+      const bx = bridge.at[0] + ux * bAlong - px * DRESSING.boatAside;
+      const bz = bridge.at[1] + uz * bAlong - pz * DRESSING.boatAside;
+      items.push({
+        what: 'rowboat', kind: 'rowboat', x: bx, z: bz,
+        // The hull's long axis is local +X; lay it ALONG THE CHANNEL (across
+        // the deck line), the way a boat tied at a bridge sits in the
+        // current — and the way its whole hull stays over the deep bed: laid
+        // along the deck at the career crossing, its ends reached the banks
+        // in 0.18 of water (swept). Then the yaw.
+        heading: hangToward(bx, bz, bx + ux, bz + uz) + Math.PI / 2 + DRESSING.boatYaw,
+        bridge: bridge.id,
+        body: false,
+        afloat: true,
+      });
+
+      // Down-screen of the near end (the route's start side): the camera side.
       const along = -(half + DRESSING.rodBack);
       const rx = bridge.at[0] + ux * along;
       const rz = bridge.at[1] + uz * along;
@@ -120,13 +167,12 @@ export function bridgeDressing(bridges, { avoid = [], clearance = DRESSING.postC
         // saw it fall at spawn). Signage you drive through, like the posts.
         body: false,
       });
-      // Beyond the rod, down the bank toward the water: the spawn, the name
-      // letters and the road box the spot in on three sides (four sweeps —
-      // 1.2 from the letters, then 4 and 27 cm inside the spawn clearance).
+      // Beside the rod, a step back from the water on the flat bank (toward
+      // the water it stood on the bank slope at −0.08, swept).
       items.push({
         what: 'bucket', kind: 'bucket',
-        x: rod.x - px * DRESSING.bucketAside + ux * 0.8,
-        z: rod.z - pz * DRESSING.bucketAside + uz * 0.8,
+        x: rod.x - px * DRESSING.bucketAside - ux * 0.5,
+        z: rod.z - pz * DRESSING.bucketAside - uz * 0.5,
         heading: 0.7,
         bridge: bridge.id,
       });

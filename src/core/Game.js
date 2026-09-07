@@ -373,6 +373,8 @@ export default class Game {
       'fence', 'cart', 'barrel', 'streetlight', 'bonfire', 'logPlain', 'logPine',
       'crate', 'haystack', 'pontoon',
       'lanternPost', 'keg', 'crateCube', 'bucket', 'fishingRod1', 'fishingRod2',
+      // The rowboat (7 Sep, Michael's find, CREDITS.md), moored at the trunk bridge.
+      'rowboat',
     ];
     const found = await this.resourcesLoader.load([
       ...['lampPost', 'carBuggy', ...SHRUB_FILES, ...FLORA_FILES, ...ROCK_FILES,

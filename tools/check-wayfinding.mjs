@@ -563,15 +563,43 @@ console.log('plaza gate, the fishing spot), against the ground, the road and the
   ];
   // Three bridge lanterns, not four: the trunk's landing end is the spawn
   // post's (measured 1.2 apart), so that lantern is dropped by rule.
-  check('three bridge lanterns, a rod, a bucket and two plaza lanterns',
+  check('three bridge lanterns, a rod, a bucket, a rowboat and two plaza lanterns',
     items.filter((i) => i.kind === 'lanternPost' && i.bridge).length === 3 &&
       items.filter((i) => i.kind === 'lanternPost' && !i.bridge).length === 2 &&
-      items.some((i) => i.kind === 'fishingRod1') && items.some((i) => i.kind === 'bucket'),
+      items.some((i) => i.kind === 'fishingRod1') && items.some((i) => i.kind === 'bucket') &&
+      items.filter((i) => i.kind === 'rowboat').length === 1,
     `${items.length} items`);
   check('the dropped lantern comes back without the posts to avoid (guard made to fail)',
     bridgeDressing(bridges).filter((i) => i.kind === 'lanternPost').length === 4);
   for (const item of items) {
     const h = ground.heightAt(item.x, item.z);
+    if (item.afloat) {
+      // The rowboat: water under its whole hull (3.4 long along its local
+      // +X), deep enough that its draught never touches the bed, and a
+      // boat's width clear of the deck's kerb.
+      const hx = Math.cos(item.heading);
+      const hz = -Math.sin(item.heading);
+      let shallowest = Infinity;
+      for (const t of [-1.7, -0.85, 0, 0.85, 1.7]) {
+        shallowest = Math.min(shallowest, WATER_SURFACE - ground.heightAt(item.x + hx * t, item.z + hz * t));
+      }
+      check(`${item.what} floats over water along its whole hull (guard made to fail)`,
+        shallowest >= DRESSING.boatDraught + 0.1, `shallowest ${shallowest.toFixed(2)}`);
+      const bridge = bridges.find((b) => b.id === item.bridge);
+      const bux = Math.sin(bridge.heading);
+      const buz = Math.cos(bridge.heading);
+      const across = -(item.x - bridge.at[0]) * buz + (item.z - bridge.at[1]) * bux;
+      // The hull's reach toward the deck: half its length (1.7) along its
+      // axis, half its paddle span (1.43) across it, projected onto the
+      // deck's normal — a bow pointed at the deck reaches the full 1.7
+      // (guard made to fail: the first mooring's bow sat inside the kerb).
+      const reachDot = Math.abs(hx * -buz + hz * bux);
+      const reach = 1.7 * reachDot + 1.43 * Math.sqrt(Math.max(0, 1 - reachDot * reachDot));
+      check(`${item.what} clears the deck's kerb, bow and paddles included`,
+        Math.abs(across) - reach >= BRIDGE.width / 2 + 0.5,
+        `centre ${Math.abs(across).toFixed(2)}, reach ${reach.toFixed(2)}, kerb ${(BRIDGE.width / 2).toFixed(2)}`);
+      continue;
+    }
     // On the plaza disc the ground is the flat swept plaza (|h| ≤ 0.05
     // there too), so one bar serves both sites.
     check(`${item.what} stands on dry flat ground`, h > -0.05 && Math.abs(h) <= 0.1, `h ${h.toFixed(3)}`);
@@ -594,6 +622,14 @@ console.log('plaza gate, the fishing spot), against the ground, the road and the
       check(`${item.what} clears the name letters`, dLetters > 1.5, dLetters.toFixed(2));
     }
   }
+  // The fishing scene left the opening frame on 7 Sep ("the main screen is
+  // too cramped"): nothing but the bridge and its lantern within 12 of the
+  // spawn, and the scene stands at the bridge the plan names.
+  const scene = items.filter((i) => ['fishingRod1', 'bucket', 'rowboat'].includes(i.kind));
+  check('the fishing scene is at the career crossing, out of the opening frame (guard made to fail)',
+    scene.length === 3 && scene.every((i) => i.bridge === DRESSING.fishingBridge &&
+      Math.hypot(i.x - defs.landing.center[0], i.z - defs.landing.center[1]) > 12),
+    scene.map((i) => `${i.kind} ${Math.hypot(i.x, i.z).toFixed(0)} from spawn`).join(', '));
   check('the rods are visuals, not bodies (guard made to fail)',
     items.filter((i) => i.kind.startsWith('fishingRod')).every((i) => i.body === false));
   // The bridge lanterns hang toward their road: the lantern's +X points at

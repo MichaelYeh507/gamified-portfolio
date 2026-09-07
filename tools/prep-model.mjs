@@ -405,6 +405,24 @@ export const RECIPES = {
       sundial: { output: 'public/models/sundial.glb', include: ['Sundial'], targetHeight: 0.9 },
     },
   },
+
+  /**
+   * The rowboat — CC-BY by Muyaya Concept, found by Michael 7 Sep for the
+   * pontoons ("heres rowboat"). 928 triangles, two small atlases, every
+   * colour on the wood pair or slate. One item, hull and both paddles
+   * together: the paddles lean in the boat in the source, and they stay
+   * there. Scaled by the whole (the paddles top the hull), so the hull
+   * comes out 3.4 long by 1.2 wide by 0.68 tall — a rowboat next to a
+   * 3.1 car, not a dinghy under it. `origin: 'bbox'` so the boat turns
+   * about its middle when moored at an angle.
+   */
+  rowboatPack: {
+    source: 'assets/models/stylized_low_poly_rowboat_with_paddles.glb',
+    snapColors: true,
+    items: {
+      rowboat: { output: 'public/models/rowboat.glb', targetHeight: 1.04, origin: 'bbox' },
+    },
+  },
 };
 
 // ------------------------------------------------------------------ helpers

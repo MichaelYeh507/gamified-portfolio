@@ -883,6 +883,31 @@ body {
   }
 }
 
+/*
+ * Narrow touch screens: the two round pad buttons on the left and the two
+ * pills on the right need ~25rem (400px) between them in one row, and a
+ * phone in portrait is 360–430px (Michael, 7 Sep: "for some people the
+ * jump and map buttons are overlayed because of how thin their device
+ * is"). So the pills stack at the right edge — map above controls — and
+ * the nudge follows the map pill up. Touch only: a narrow desktop window
+ * has no pad, so its row is fine.
+ */
+@media (max-width: 30rem) {
+  .input-touch .map-button {
+    right: 1.1rem;
+    bottom: calc(1.1rem + 2.6rem + 0.55rem);
+  }
+
+  .input-touch .map-nudge {
+    right: 1.1rem;
+    bottom: calc(1.1rem + 2.6rem + 0.55rem + 3.3rem);
+  }
+
+  .input-touch .map-nudge__arrow {
+    margin-right: 1.2rem;
+  }
+}
+
 /* ---------- fallback ---------- */
 
 #fallback {

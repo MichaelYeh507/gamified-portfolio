@@ -4,7 +4,7 @@ import { COLOR, paint } from '../render/palette.js';
 import { WATER_SURFACE, bridgesPlan } from './Terrain.js';
 import { wayfindingPlan } from './wayfindingPlan.js';
 import { BRIDGE } from './bridgePlan.js';
-import { bridgeDressing, roadEndLanterns } from './dressingPlan.js';
+import { bridgeDressing, roadEndLanterns, DRESSING } from './dressingPlan.js';
 import { standFixedProp, standDynamicProp } from './props.js';
 
 /** The island's ground friction (`Island.js`), so a deck drives like the road it carries. */
@@ -98,6 +98,9 @@ export default class Wayfinding {
       const model = props[item.kind];
       if (!model) continue;
       const placement = { x: item.x, z: item.z, rotationY: item.heading };
+      // Afloat: the rowboat sits on the water, hull sunk its draught, not
+      // on the river bed under it.
+      if (item.afloat) placement.y = WATER_SURFACE - DRESSING.boatDraught;
       if (item.body === false) this._placeVisual(model, placement);
       else if (item.kind === 'lanternPost') standFixedProp(this.game, model, placement);
       else standDynamicProp(this.game, model, placement);
@@ -107,9 +110,9 @@ export default class Wayfinding {
   }
 
   /** A found prop with no body — the areas' `_placeVisual`, same reasons. */
-  _placeVisual(model, { x, z, rotationY }) {
+  _placeVisual(model, { x, z, rotationY, y = null }) {
     const clone = model.clone(true);
-    clone.position.set(x, this.game.terrain.heightAt(x, z), z);
+    clone.position.set(x, y ?? this.game.terrain.heightAt(x, z), z);
     clone.rotation.y = rotationY;
     this.game.objects.add({ model: clone });
   }
