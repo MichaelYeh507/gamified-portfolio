@@ -7,7 +7,7 @@ import { COLOR, paint } from '../../render/palette.js';
 import { makeImageMaterial, makeTextMaterial } from '../../render/materials.js';
 import { makeTextPlate } from '../../render/textPlate.js';
 import { ease } from '../../core/tween.js';
-import { standDynamicProp, propSize } from '../props.js';
+import { standDynamicProp, standFixedProp } from '../props.js';
 import { staticUrl } from '../../core/staticUrl.js';
 
 /**
@@ -308,19 +308,6 @@ const BEACON_RADIUS = 4.5;
 const BEACON_HEIGHT = 0.25;
 
 /**
- * How far the floor sits proud of the terrain, and it is measured rather than
- * nudged until the flicker stopped.
- *
- * Two surfaces have to be cleared, and they are different surfaces. The *drawn*
- * ground interpolates linearly across 1.5-unit triangles built from
- * `terrain.sample()`, while `heightAt` is bilinear over the same grid — worst
- * disagreement over the plaza, sampled: **0.0064**. And the floor's own quads
- * are much coarser than the terrain's, so the ground bulges up to **0.0257**
- * above the plane between four floor vertices. 0.032 total; 0.06 clears it with
- * the margin doubled.
- */
-const FLOOR_LIFT = 0.06;
-/**
  * Apron of floor beyond the outermost monolith.
  *
  * 4 rather than something rounder: at this centre it puts the floor's edge 3.0
@@ -342,10 +329,6 @@ const HOP = Object.freeze({ radius: 8, rearm: 3, height: 0.25, up: 0.3, down: 0.
 /** The corridor's label wipe time, so every written label on the island
  *  writes at one speed. */
 const WIPE_TIME = 0.6;
-/** A crate stack beside each board, screen-right: this far from the board's
- *  centre, on its depth line. Between the stack and the next board stays
- *  drivable (8.35 centre to centre, 3.8 boards, ~0.85 of crates). */
-const CRATE_ASIDE = BOARD.width / 2 + 1.3;
 
 /**
  * Where entry `i` sits on the arc, in radians either side of centre.
@@ -394,11 +377,13 @@ export function plazaLayout(center, count) {
  * Radius of the plaza's ground disc — the monoliths, plus the apron, capped by
  * the clearing.
  *
- * Exported because `Terrain` sinks a basin under exactly this disc and the two
- * must not be able to disagree: a basin narrower than the floor would leave the
- * outer boards standing on the rim, which is the failure that makes a basin a
- * dish. `_floorGeometry` calls it too, so there is one definition rather than a
- * constant on each side.
+ * Exported because `Terrain` sinks a basin under exactly this disc and paints
+ * the paving across it (7 Sep — the floor was a flat dirt-coloured disc mesh
+ * lifted 6 cm, a stand-in from before the roads were paved; Michael: "is the
+ * plaza just sitting on a non textured dome"), and the two must not be able to
+ * disagree: a basin narrower than the floor would leave the outer boards
+ * standing on the rim, which is the failure that makes a basin a dish. One
+ * definition rather than a constant on each side.
  */
 export function plazaFloorRadius(def, count) {
   const wanted = plazaReach(def.center, count) + FLOOR_APRON;
@@ -411,6 +396,237 @@ export function plazaReach(center, count) {
     (max, p) => Math.max(max, Math.hypot(p.x - center[0], p.z - center[1])),
     0
   );
+}
+
+/**
+ * The plaza's dressing, as a plan: every prop on the disc in `[aside, toward]`
+ * — screen-right along `ACROSS`, toward the camera along `TO_CAMERA`, from the
+ * standing point — so the whole rim is one list `check-wayfinding` sweeps for
+ * flat ground, the disc's edge, the landing, the lamps, and no two bodies born
+ * inside each other (the corridor's fence dominoed that way once).
+ *
+ * The rim (2 Sep, then the art pass 6 Sep): a haystack, two barrels, a keg and
+ * a cube crate outside the lamps (which stand at ±6 across, +4 toward the
+ * camera), camera-side, off the road's arrival (which comes in behind the
+ * boards) and off every spot a fourth or fifth board would take.
+ *
+ * **Round two (7 Sep): a paddock corner behind the haystack.** Three rail
+ * panels from the human-props pack stand as an L up-screen of the haystack —
+ * two along the screen's horizontal as a back rail, one down its screen-left
+ * end — so the hay reads as hay in a pen corner rather than a bale dropped on
+ * a floor, and the fixed camera sees the whole stack in front of its rails
+ * rather than through them. The panels are knockable — the reference's
+ * mass-0.1 description like the rim — since 9 Sep (Michael: "make the fence
+ * below edgeball project board knockable"); they were born fixed as a
+ * precaution (1.05 tall on a 0.23 base, the fishing rod's lesson), not
+ * because one ever fell, and on the running build all three stand through
+ * 600 ticks untouched. What knockable rails need that fixed ones did not: a
+ * gap between panels, because bodies born overlapping shove apart at build
+ * (the corridor fence's domino) — the run steps by the longest shipped panel
+ * plus a hand, and each run starts a hand out from the corner point, so the
+ * L has an open notch at the corner between two end posts.
+ *
+ * A sundial stood on the plaza's axis for an hour the same evening and was
+ * cut on Michael's question ("what's the point of the sundial"): none — the
+ * sun's direction is fixed by design (`Lighting.js`), so it could not even
+ * tell the time, and it sat on the reversing line from the landing. It stays
+ * prepped. The plaza wants decorations with a look, his brief for round
+ * three: "more beautiful and aesthetic decorations".
+ *
+ * **Round three (8 Sep): the tethered balloon.** Michael's find (Styro,
+ * CC-BY, `CREDITS.md`), a landmark rather than a prop: it floats on a
+ * code-built tether anchored on the paving behind the boards, up-screen of
+ * the middle board and between its column and the right wing's, so under
+ * the fixed camera it hangs in the sky above the boards' line — the arrival
+ * frame shows it whole, its top 0.7 under the frame's edge — and never in
+ * front of a board. A visual with no body: the car drives under a basket
+ * 1.6 off the ground. It bobs on the tether and drifts a hand's width, the
+ * ambient motion the map keeps asking for; the burner is on the emissive
+ * band, so the basket is lit at night.
+ *
+ * **The string lights (8 Sep), the balloon's agreed partner.** Lines of
+ * amber bulbs joining the boards' tops — from each board's title plate to
+ * the next along the arc — so at night the three boards read as one lit
+ * gallery and the plaza is lit from above by the one thing in the world
+ * that hangs in the air. Code-built like the goal and the letters: the cord
+ * a tube on the near-black band, the bulbs spheres on the amber band, which
+ * IS the emissive band (`Night.js`). Visuals, no bodies. **They hung
+ * between the two lamp posts first**, for an hour: the lamps are 2.7 tall
+ * and the car 1.2, and the cord's lowest point sat 0.2 over the roof —
+ * Michael: "it looks like the car phases through the line". Raising it to
+ * the finials would have put the cord across the landed car's rear on
+ * screen (a hook at 2.6, four toward the camera, projects 1.4 toward it;
+ * the car's bumper is at 1.55). The boards are 3.23 tall with 4.5 of
+ * drivable gap between them: a cord between their tops clears the roof by
+ * 1.45 through every gap and hangs 8 rows up the arrival frame, nowhere
+ * near the car.
+ */
+export const PLAZA_DRESSING = Object.freeze({
+  haystack: [-9.2, 2.6],
+  crateCube: [-8.0, 3.6],
+  barrels: [[9.0, 2.4], [9.9, 3.3]],
+  keg: [8.1, 3.6],
+  /** The paddock's corner post, from the haystack: this far out past it
+   *  along the rim, and this far behind it up-screen. The haystack's box
+   *  is 2.28 × 1.33 turned 0.4 off the camera axis, so its screen-left edge
+   *  reaches 1.1 out and its back edge 1.0 up-screen; the rails clear both
+   *  by half a unit (measured, and the overlap guard holds it). */
+  paddockOut: 2.4,
+  paddockBehind: 1.6,
+  /** The step between panel centres along a run — `public/models/
+   *  railFence*.glb` at the 1.05 recipe height measure 1.287 / 1.333 / 1.320
+   *  along their rails, and knockable bodies born touching shove apart at
+   *  build, so the step is the longest panel plus a hand. */
+  panelStep: 1.42,
+  /** Each run starts this far out from the corner point, past the other
+   *  run's thickness (0.23) with the same hand to spare. */
+  cornerGap: 0.2,
+  /** The balloon's anchor: behind the middle board, off the axis toward
+   *  the right wing so its column falls between the two boards' columns
+   *  (measured: the envelope spans aside 2.3–5.7; the middle board ends at
+   *  1.9, the right wing starts at 6.4). Nine and a half up-screen puts the
+   *  basket's floor 11.1 rows up the frame at the float, above the boards'
+   *  tops (8.7 for the middle one), and the envelope's top at 16.9 against a
+   *  frame that ends 17.6 ahead. */
+  balloon: [4.0, -9.5],
+  /** The basket's floor above the paving: a car (1.2) passes under it. */
+  balloonFloat: 1.6,
+  /** The bob on the tether, and the drift across it, in units; the period
+   *  in seconds — slow, a balloon, not a buoy. */
+  balloonBob: 0.3,
+  balloonSway: 0.2,
+  balloonPeriod: 9,
+});
+
+/**
+ * The two lamp posts flanking the plaza's approach, in `[aside, toward]`
+ * from the standing point — the numbers `Game.LAMP_PLACEMENTS` used to
+ * write out as world XZ (35.1, 16.6 / 26.6, 25.1) and now derives here.
+ * See the header of `Game.js` for why ±6 and 4: off every board's interact
+ * point and the spawn→plaza drive line.
+ */
+export const PLAZA_LAMPS = Object.freeze({ aside: 6, toward: 4 });
+
+export function plazaLamps(center) {
+  return [PLAZA_LAMPS.aside, -PLAZA_LAMPS.aside].map((aside) => ({
+    at: [
+      center[0] + ACROSS.x * aside + TO_CAMERA.x * PLAZA_LAMPS.toward,
+      center[1] + ACROSS.z * aside + TO_CAMERA.z * PLAZA_LAMPS.toward,
+    ],
+    heading: FACE_YAW,
+  }));
+}
+
+/** The strings of lights between the boards' tops. */
+export const PLAZA_LIGHTS = Object.freeze({
+  /** The hook: a title plate's top corner, this far in from the plate's
+   *  edge and this far under its top. */
+  hookInset: 0.12,
+  hookDrop: 0.06,
+  /** A span's droop in the middle. A gap between plates is ~4.7 on the
+   *  arc; at 0.45 the lowest bulb hangs 2.64 over the paving, a car's
+   *  height and more over the roof (1.2). */
+  sag: 0.45,
+  /** Bulbs this far apart along a span, hung this far under the cord. */
+  bulbStep: 0.45,
+  bulbDrop: 0.08,
+  bulbRadius: 0.06,
+  cordRadius: 0.018,
+  /** Points on each cord's curve, for the tube. */
+  cordSamples: 17,
+});
+
+/**
+ * The strings: one span between every pair of boards that are neighbours
+ * across the screen, from the right-hand top corner of the left board's
+ * title plate to the left-hand top corner of the right board's. Each cord
+ * is a parabola (a catenary this shallow is one to the eye) with the bulbs
+ * at even steps along it.
+ *
+ * @param {[number, number]} center the plaza's standing point
+ * @param {number} count how many boards stand
+ * @param {{ heightAt?: (x: number, z: number) => number }} [ground] the
+ *   terrain under each board; the disc is flat at 0, the default
+ * @returns {{ spans: { from: number[], to: number[], cord: number[][], bulbs: number[][], boards: [number, number] }[] }}
+ */
+export function plazaStringLights(center, count, { heightAt = () => 0 } = {}) {
+  const L = PLAZA_LIGHTS;
+  const boards = plazaLayout(center, count)
+    .map((b) => ({ ...b, aside: (b.x - center[0]) * ACROSS.x + (b.z - center[1]) * ACROSS.z }))
+    .sort((a, b) => a.aside - b.aside);
+  const corner = (board, side) => {
+    const reach = BOARD.width / 2 - L.hookInset;
+    return [
+      board.x + ACROSS.x * reach * side,
+      heightAt(board.x, board.z) + TOTAL_HEIGHT - L.hookDrop,
+      board.z + ACROSS.z * reach * side,
+    ];
+  };
+  const spans = [];
+  for (let i = 0; i + 1 < boards.length; i++) {
+    const from = corner(boards[i], 1);
+    const to = corner(boards[i + 1], -1);
+    const at = (t, drop = 0) => [
+      from[0] + (to[0] - from[0]) * t,
+      from[1] + (to[1] - from[1]) * t - L.sag * 4 * t * (1 - t) - drop,
+      from[2] + (to[2] - from[2]) * t,
+    ];
+    const cord = Array.from({ length: L.cordSamples }, (_, k) => at(k / (L.cordSamples - 1)));
+    const run = Math.hypot(to[0] - from[0], to[2] - from[2]);
+    const n = Math.floor(run / L.bulbStep);
+    // Bulbs from half a step in, so none sits on a hook.
+    const bulbs = Array.from({ length: n }, (_, k) => at((k + 0.5) / n, L.bulbDrop));
+    spans.push({ from, to, cord, bulbs, boards: [boards[i].index, boards[i + 1].index] });
+  }
+  return { spans };
+}
+
+/**
+ * The crate stacks that stood beside every board from 2 Sep ("something to
+ * hit per project") were cut 9 Sep on Michael's drive: "remove the boxes
+ * between each project panel". The gaps between the boards are clear again.
+ *
+ * @param {[number, number]} center world XZ of the standing point
+ * @param {number} count how many boards stand (the strings' business)
+ * @returns {{ what: string, kind: string, x: number, z: number, rotationY: number,
+ *   fixed?: boolean, body?: boolean }[]}
+ */
+export function plazaDressing(center, count) {
+  const D = PLAZA_DRESSING;
+  const at = (aside, toward) => ({
+    x: center[0] + ACROSS.x * aside + TO_CAMERA.x * toward,
+    z: center[1] + ACROSS.z * aside + TO_CAMERA.z * toward,
+  });
+  const items = [];
+
+  items.push(
+    { what: 'haystack', kind: 'haystack', ...at(...D.haystack), rotationY: FACE_YAW + 0.4 },
+    { what: 'barrel 0', kind: 'barrel', ...at(...D.barrels[0]), rotationY: 0.3 },
+    { what: 'barrel 1', kind: 'barrel', ...at(...D.barrels[1]), rotationY: 1.1 },
+    { what: 'keg', kind: 'keg', ...at(...D.keg), rotationY: 0.8 },
+    { what: 'cube crate', kind: 'crateCube', ...at(...D.crateCube), rotationY: FACE_YAW + 0.25 }
+  );
+
+  // The paddock corner. A panel's rails run along its local +Z, and a yaw θ
+  // maps local +Z to (sin θ, cos θ): 3π/4 lays it along ACROSS, π/4 along
+  // TO_CAMERA. The corner is the up-screen, screen-left point of the L; the
+  // back rail runs screen-right from it, the side rail runs toward the camera.
+  const corner = [D.haystack[0] - D.paddockOut, D.haystack[1] - D.paddockBehind];
+  const alongAcross = Math.PI * 0.75;
+  const alongToward = Math.PI * 0.25;
+  const run = (k) => D.cornerGap + D.panelStep * (k + 0.5);
+  items.push(
+    { what: 'paddock back rail 0', kind: 'railFence1', ...at(corner[0] + run(0), corner[1]), rotationY: alongAcross, paddock: true },
+    { what: 'paddock back rail 1', kind: 'railFence2', ...at(corner[0] + run(1), corner[1]), rotationY: alongAcross, paddock: true },
+    { what: 'paddock side rail', kind: 'railFence3', ...at(corner[0], corner[1] + run(0)), rotationY: alongToward, paddock: true }
+  );
+
+  // The balloon: a visual in the air on a tether, no body.
+  items.push({
+    what: 'balloon', kind: 'balloon', ...at(...D.balloon), rotationY: FACE_YAW + 0.3,
+    body: false, float: D.balloonFloat, bob: D.balloonBob, sway: D.balloonSway,
+  });
+  return items;
 }
 
 export default class ProjectsArea extends Area {
@@ -518,8 +734,8 @@ export default class ProjectsArea extends Area {
       });
     });
 
-    this.addProp(this._floorGeometry(), { color: COLOR.dirt }).castShadow = false;
     this._dress();
+    this._buildStringLights();
 
     this._assertFitsClearing();
     this._warnAboutMissingContent();
@@ -688,49 +904,96 @@ export default class ProjectsArea extends Area {
   }
 
   /**
-   * The plaza's dressing, all of it the reference's knockable-body description
-   * (`world/props.js`): a stack of three crates beside every board — the
-   * "something to hit per project" — and a haystack and two barrels on the
-   * rim outside the lamps, camera-side, off the road's arrival (which comes
-   * in behind the boards) and off every spot a fourth or fifth board would
-   * take. The reference's plaza is ringed with authored props (an oven, an anvil, a
-   * grinder); ours is ringed with the pack we have.
+   * The plaza's dressing: the reference's knockable-body description
+   * (`world/props.js`) for the rim — a haystack, two barrels, a keg and a
+   * cube crate outside the lamps, camera-side, off the road's arrival and
+   * off every spot a fourth or fifth board would take — the paddock's rails
+   * as fixed bodies, and the balloon as a floating visual. The reference's
+   * plaza is ringed with authored props (an oven, an anvil, a grinder); ours
+   * is ringed with the packs we have. The crate stacks beside the boards
+   * left 9 Sep on Michael's drive.
    */
   _dress() {
     const props = this.game.props;
-    if (!props?.crate) return;
-    const crate = propSize(props.crate);
-    const half = crate.x / 2 + 0.03;
+    if (!props) return;
 
-    for (const m of this.monoliths) {
-      const at = (aside, back = 0) => ({
-        x: m.x + ACROSS.x * (CRATE_ASIDE + aside) - TO_CAMERA.x * back,
-        z: m.z + ACROSS.z * (CRATE_ASIDE + aside) - TO_CAMERA.z * back,
-      });
-      standDynamicProp(this.game, props.crate, { ...at(-half), rotationY: FACE_YAW });
-      standDynamicProp(this.game, props.crate, { ...at(half), rotationY: FACE_YAW });
-      standDynamicProp(this.game, props.crate, { ...at(0), rotationY: FACE_YAW, lift: crate.y + 0.02 });
+    // Everything on the disc comes off `plazaDressing` (swept by
+    // `check-wayfinding`). The two lantern posts flanking where the landing
+    // road arrives are the wayfinding layer's (`Wayfinding._buildDressing`,
+    // from `dressingPlan.roadEndLanterns`): world-level, because importing
+    // the plan here closed a module cycle through `Terrain`, and because a
+    // road end is the road's business.
+    this.floating = [];
+    for (const item of plazaDressing(this.def.center, this.monoliths.length)) {
+      const model = props[item.kind];
+      if (!model) continue;
+      if (item.body === false) { this._placeFloating(model, item); continue; }
+      const placement = { x: item.x, z: item.z, rotationY: item.rotationY };
+      if (item.fixed) standFixedProp(this.game, model, placement);
+      else standDynamicProp(this.game, model, placement);
     }
+  }
 
-    // The rim: outside the lamps (which stand at ±6 across, +4 toward the
-    // camera of the standing point), still on the floor disc.
-    const rim = (aside, toward) => ({
-      x: this.center.x + ACROSS.x * aside + TO_CAMERA.x * toward,
-      z: this.center.z + ACROSS.z * aside + TO_CAMERA.z * toward,
+  /**
+   * The string lights between the boards' tops: each span's cord as one
+   * tube along the plan's curve on the near-black band, every bulb of every
+   * span in one merged geometry of small spheres on the amber band — which
+   * is the emissive band, so they glow at night with the lamp chambers.
+   * Visuals, no bodies; neither casts a shadow (a 0.06 sphere's shadow is
+   * a speck, and the cord's a hairline that would swim in the shadow map).
+   */
+  _buildStringLights() {
+    const L = PLAZA_LIGHTS;
+    const plan = plazaStringLights(this.def.center, this.monoliths.length, { heightAt: (x, z) => this.groundAt(x, z) });
+    const bulbs = [];
+    for (const span of plan.spans) {
+      const curve = new THREE.CatmullRomCurve3(span.cord.map((p) => new THREE.Vector3(...p)));
+      const cord = this.addProp(new THREE.TubeGeometry(curve, L.cordSamples * 2, L.cordRadius, 5, false), { color: COLOR.black });
+      cord.castShadow = false;
+      for (const [x, y, z] of span.bulbs) bulbs.push(new THREE.SphereGeometry(L.bulbRadius, 8, 6).translate(x, y, z));
+    }
+    if (bulbs.length) this.addProp(mergeGeometries(bulbs, false), { color: COLOR.amber }).castShadow = false;
+  }
+
+  /**
+   * A found prop floating on a tether: the balloon. The model is a visual
+   * (no body) placed `float` above the ground at the anchor; the tether is a
+   * thin code-built cylinder from the anchor to the basket's floor, re-aimed
+   * every tick as the balloon bobs and drifts (`update`).
+   */
+  _placeFloating(model, item) {
+    const clone = model.clone(true);
+    const ground = this.groundAt(item.x, item.z);
+    clone.position.set(item.x, ground + item.float, item.z);
+    clone.rotation.y = item.rotationY;
+    this.game.objects.add({ model: clone });
+    const rope = this.addProp(new THREE.CylinderGeometry(0.03, 0.03, 1, 6), {
+      color: COLOR.woodDark,
+      position: [item.x, ground + item.float / 2, item.z],
     });
-    standDynamicProp(this.game, props.haystack, { ...rim(-9.2, 2.6), rotationY: FACE_YAW + 0.4 });
-    standDynamicProp(this.game, props.barrel, { ...rim(9.0, 2.4), rotationY: 0.3 });
-    standDynamicProp(this.game, props.barrel, { ...rim(9.9, 3.3), rotationY: 1.1 });
+    rope.castShadow = false;
+    rope.scale.y = item.float;
+    this.floating.push({ model: clone, rope, item, ground, phase: this.floating.length * 1.7 });
+  }
 
-    // The art pass (6 Sep, late; the human-props pack): a keg with the
-    // barrels, a cube crate by the haystack — the same knockable rim. The
-    // two lantern posts flanking where the landing road arrives at the disc
-    // are the wayfinding layer's (`Wayfinding._buildDressing`, from
-    // `dressingPlan.roadEndLanterns`): world-level, because importing the
-    // plan here closed a module cycle through `Terrain`, and because a road
-    // end is the road's business.
-    if (props.keg) standDynamicProp(this.game, props.keg, { ...rim(8.1, 3.6), rotationY: 0.8 });
-    if (props.crateCube) standDynamicProp(this.game, props.crateCube, { ...rim(-8.0, 3.6), rotationY: FACE_YAW + 0.25 });
+  /** The tether's aim, once per floating prop per tick. */
+  _updateFloating(elapsed) {
+    const up = new THREE.Vector3(0, 1, 0);
+    const dir = new THREE.Vector3();
+    for (const f of this.floating) {
+      const { item, ground, phase } = f;
+      const w = (Math.PI * 2) / PLAZA_DRESSING.balloonPeriod;
+      const bob = item.bob * Math.sin(elapsed * w + phase);
+      const sx = item.sway * Math.sin(elapsed * w * 0.61 + phase + 1.0);
+      const sz = item.sway * Math.cos(elapsed * w * 0.43 + phase);
+      f.model.position.set(item.x + sx, ground + item.float + bob, item.z + sz);
+      // The rope: from the anchor on the ground to the basket's floor.
+      dir.set(sx, item.float + bob, sz);
+      const length = dir.length();
+      f.rope.position.set(item.x + sx / 2, ground + (item.float + bob) / 2, item.z + sz / 2);
+      f.rope.quaternion.setFromUnitVectors(up, dir.normalize());
+      f.rope.scale.y = length;
+    }
   }
 
   /**
@@ -740,6 +1003,7 @@ export default class ProjectsArea extends Area {
    * close enough to be greeted.
    */
   update(delta, elapsed) {
+    if (this.floating?.length) this._updateFloating(elapsed);
     const car = this.game.car.position;
     for (const m of this.monoliths) {
       const d = Math.hypot(car.x - m.x, car.z - m.z);
@@ -766,31 +1030,6 @@ export default class ProjectsArea extends Area {
         m.wipe.value = Math.min(1.1, m.wipe.value + delta / WIPE_TIME);
       }
     }
-  }
-
-  /**
-   * A stand-in for decision 21's authored plaza floor.
-   *
-   * Procedural like the rest of the placeholder world, and it follows the height
-   * field rather than sitting flat on it — the land runs 0 to 1.5 and a flat
-   * disc would bury one edge and float the other. Sized off the arc so it always
-   * covers what is actually there, which is decision 21's "author the floor for
-   * what is there and let it grow outward" done in code until the real art
-   * exists.
-   */
-  _floorGeometry() {
-    const radius = plazaFloorRadius(this.def, projects.length);
-    const geometry = new THREE.RingGeometry(0, radius, 56, 8);
-    geometry.rotateX(-Math.PI / 2);
-    geometry.translate(this.center.x, 0, this.center.z);
-
-    const position = geometry.attributes.position;
-    for (let i = 0; i < position.count; i++) {
-      position.setY(i, this.groundAt(position.getX(i), position.getZ(i)) + FLOOR_LIFT);
-    }
-    position.needsUpdate = true;
-    geometry.computeVertexNormals();
-    return geometry;
   }
 
   /**

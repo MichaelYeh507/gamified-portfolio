@@ -444,8 +444,9 @@ authored props we do not have; the one pattern that ports is the reference's
 blackboard's hop. Each board is its own group now and **hops once as you
 come to it**, its title writing itself on with that first greeting (the
 corridor's wipe, one-way). **A stack of three crates stands beside every
-board**, the reference's mass-0.1 bodies, so each project has something to hit; a
-haystack and two barrels dress the rim outside the lamps. **The reference's confetti**
+board**, the reference's mass-0.1 bodies, so each project has something to hit
+(cut 9 September on Michael's drive: "remove the boxes between each project
+panel"); a haystack and two barrels dress the rim outside the lamps. **The reference's confetti**
 is ported (`render/Confetti.js`, 500 planes over five seconds, the reference's vertex
 maths on our tween, no instancing) and bursts at a board's feet when its
 card opens, a third of it on the emissive band.
@@ -580,7 +581,7 @@ bucket and a leaning rod at the contact fire, a keg and a cube crate on the
 plaza rim. Every placement is a pure plan the suites sweep for dry flat
 ground, clearance from the roads, the decks and the signposts; three misses
 were caught by the sweep before anyone saw them. Rail fences and a sundial
-are prepped and wait for a placement. From Michael's first drive, the same
+were prepped that night and placed in round two (below). From Michael's first drive, the same
 night: the deck top is flush with the banks now instead of running under
 them, the rods are visuals rather than bodies that lie down at the first
 physics hiccup, the fishing spot moved out of the spawn's first drive, and
@@ -595,6 +596,80 @@ crossing on his call: the opening frame was too cramped. And on narrow
 touch screens the map and controls pills stack at the right edge, map
 above controls, because a phone in portrait could not fit them beside the
 boost and jump buttons in one row.
+
+**Round two of the art pass** (7 September, evening). The three rail panels
+stand as a paddock corner up-screen of the plaza's haystack, two along the
+screen as a back rail and one down its screen-left end, so the hay reads as
+hay in a pen and the fixed camera sees the whole stack in front of its rails.
+They were born fixed as a precaution (the fishing rod's lesson) and went
+knockable on 9 September on Michael's drive, "make the fence below edgeball
+project board knockable", with a hand's gap between panels so none is born
+touching another; the car knocks them flat. The sundial stood on the plaza's axis for an hour and was cut on
+Michael's question, "what's the point of the sundial": there was none. The
+sun's direction is fixed by design, so its shadow could never tell the time,
+and it sat on the reversing line from the fast-travel landing. It stays
+prepped. His brief for the plaza instead: "more beautiful and aesthetic
+decorations". The paddock comes off `plazaDressing` in `ProjectsArea`, a
+pure plan that now also carries the crate stacks and the rim from round one,
+and `check-wayfinding` sweeps all seventeen bodies for the flat disc, the
+road, the disc's edge, the landing, the lamps and the signposts, with a
+separating-axis test that no two knockables are born inside each other (the
+corridor fence's domino) and that the paddock's panels meet square at one
+corner. The sweep's first run caught a round-one placement: the right-hand
+stack's outer crate puts a corner 0.23 past the drawn floor's edge, onto
+ground that is just as flat, and the bar records it rather than moving the
+crate. Nothing new came in from Michael's search that evening; his two look
+calls from round one are measured and waiting under *Next*.
+
+**The plaza floor, paved** (7 September, late). Michael, planning the plaza's
+decorations: "is the plaza just sitting on a non textured dome right now, it
+looks kinda off". It was: a flat disc of the dirt colour, lifted 6 cm, a
+stand-in from 20 August that was never replaced when the roads got their
+stone paving through the terrain's mask on 3 September, so the road's tiles
+stopped dead at the disc's edge. The terrain now paints the plaza's circle
+into the same paving channel with the road's feathered edge, the disc mesh is
+gone, and the landing road flows into a paved square with a worn sand
+shoulder. Nothing moved; the basin, the boards and the suite read the same
+floor radius.
+
+**Round three opens with a balloon** (8 September). Michael's find, a CC-BY
+hot-air balloon by Styro, 792 triangles, credited the minute it landed. The
+retint tool refused its sky blue, which is further from every palette band
+than the tolerance allows, so the stripes were assigned the warm accent by
+rule: orange and white against the hills, with the burner on the amber band
+so the basket is lit at night. It floats on a code-built tether anchored on
+the paving behind the middle board, off the axis so its column falls between
+two boards' columns and it hangs in the sky above the boards' line, never in
+front of one; a car drives under the basket. It bobs and drifts slowly, the
+rope re-aimed every tick. The plaza plan places it as its one bodiless item,
+and the suite holds its column clear of every board's top and its top inside
+the arrival frame.
+
+**And the string lights**, the same morning. Twenty amber bulbs on cords
+between the boards' tops, one span per neighbouring pair along the arc,
+hooked at the title plates' corners and sagging in the middle, code-built
+like the goal and the letters. The bulbs sit on the amber band, which is the
+emissive band, so at night the three boards read as one lit gallery. They
+hung between the two lamp posts for an hour first; Michael's first look
+moved them: the lamps are 2.7 tall over a 1.2 car, so the cord sat a hand
+over the roof and the car seemed to pass through it, and the finials would
+have put the cord across the landed car's rear on screen. Between the boards
+the lowest bulb clears the roof by a car's height and a half through every
+drivable gap, and the cords sit high in the arrival frame, nowhere near the
+car. The lamp posts' placement now derives from the plaza's plan too.
+
+**The road to the projects, and the crate stacks cut** (9 September,
+Michael's drive). The projects road used to begin behind the name: the car
+spawned facing its host's letters, and the road started on their far side,
+so the way to the plaza read as "drive through the name". The name's right
+end stands against the trunk river, so the road now leaves from under the
+car to the screen-left, rounds the name's left end a full kerb clear of the
+last letter, and sweeps right under the tagline to the plaza's rim; the car
+spawns facing along it. It is the one route authored point by point, in the
+fixed camera's screen coordinates, and the suite holds its start under the
+car, its first step to the left, the spawn heading to its tangent, and its
+clearance from the letters and the tagline. The crate stacks between the
+boards are gone on the same drive.
 
 Not done yet: toasts (deferred by Michael), the playground (designated
 cut), the foliage sprite material, audio, the `availability` line when
@@ -1033,18 +1108,34 @@ layer.
 ## Next
 
 `ROADMAP.md` → *Carried into the next session* is authoritative. In short, as
-of 6 September 2026 with the site live at michaelyeh.dev and drivable on a
+of 7 September 2026 with the site live at michaelyeh.dev and drivable on a
 phone:
 
-1. **The art pass, round two** — the prepped rail fences and sundial once
-   they have a place, and any further CC0 or CC-BY packs Michael finds (a
-   dock or pier, benches, a well or windmill, a market stall, a tent, a
-   mailbox are the holes worth filling; a rowboat landed 7 Sep), through
-   the retint tool as before. Still unjudged from round one: whether the
-   lantern's pane reads bright enough at night, and whether the
-   channel-head ford on the career road should stay a ford.
+1. **The art pass, round three** — Michael's next drive (the new road out
+   of the spawn, the plaza without its crates); then more of his brief from
+   the sundial's cut, "more beautiful and aesthetic
+   decorations" — pieces with a look, not props with a job (a fountain,
+   planters and flowerbeds, benches, banners, a statue, a well are the
+   searches; CC0 or CC-BY only, through the retint tool as before); and the
+   pieces still unused in the packs already in hand, which need no licence
+   work at all: the medieval pack's anvil (the reference's plaza is ringed
+   with an anvil, an oven and a grinder), its sacks, ladder and four
+   firewood stacks, and the human-props pack's second lantern and three
+   books.
+2. **Two look calls, measured and waiting for Michael.** The lantern's lit
+   pane at night: 14 triangles over 7 % of the model's height, a 14 cm pane
+   at the 2.0 recipe height, inside a 59-triangle dark frame (`#383838`,
+   13 % of the height) — the levers are a second `colorOverrides` entry
+   that puts the frame on the emissive band too (the whole lantern box
+   lights, the streetlight-glass treatment) or the recipe height. The
+   channel-head puddle on the career road: the road's centre line sits 2 cm
+   above the water surface at (−34.7, −1.5), four units past the
+   contact-career deck's far end — leave it, or move the route's bow.
 3. **The plaza in portrait** (`KNOWN-ISSUES.md` 23), a design call for the
-   phone: tighten the arc or let a portrait visitor drive along it.
+   phone with the levers laid out in `ROADMAP.md`'s handoff: no arc step
+   fits three boards in a phone's frame without closing the gap you drive
+   through, so the recommendation is to let a portrait visitor drive along
+   the arc.
 4. **Pitch extras** when he asks: a score, a second goal.
 5. **Small holes:** toasts (deferred by Michael), the `availability` line
    and the two CMU one-liners in `src/content/` when he writes them, the

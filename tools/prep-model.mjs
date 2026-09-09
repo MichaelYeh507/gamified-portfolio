@@ -423,6 +423,44 @@ export const RECIPES = {
       rowboat: { output: 'public/models/rowboat.glb', targetHeight: 1.04, origin: 'bbox' },
     },
   },
+
+  /**
+   * The hot-air balloon — CC-BY by Styro, Michael's find for round three of
+   * the art pass (8 Sep: "heres the baloon"; the brief was "more beautiful
+   * and aesthetic decorations" for the plaza, and a tethered balloon was the
+   * pick alongside string lights). 792 triangles, one material, one
+   * texture. Measured through its parent rotations it is Y-up, 11.6 wide by
+   * 18.6 tall: a basket 1.6–2.2 wide over the bottom fifth, a 1.9-unit gap
+   * where the source draws no rigging, then the envelope. Six colours: a
+   * sky blue and white on the envelope's stripes (the blue is 0.38 from
+   * every band, past the 0.35 tolerance, so it is assigned to the warm
+   * accent by rule; the white snaps to near-white — orange and white), two
+   * wicker browns on the basket (the wood pair), a dark grey, and a grey
+   * burner (#b6b6b6, 56 triangles) which goes on the emissive band so the
+   * basket is lit at night, the lantern pane's word.
+   *
+   * 5.5 tall: taller than the boards (3.23) and the streetlight (2.6), a
+   * landmark that floats above the plaza's arc rather than a prop among
+   * the props — its envelope comes out 3.4 across, the basket 0.6. Origin
+   * at the base (the basket's floor) so the float height is the basket's
+   * clearance.
+   */
+  balloonPack: {
+    source: 'assets/models/hot_air_balloon_-_low_poly.glb',
+    snapColors: true,
+    items: {
+      balloon: {
+        output: 'public/models/balloon.glb', targetHeight: 5.5, origin: 'base',
+        colorOverrides: {
+          // The sky blue is 0.38 from every band (tolerance 0.35): the
+          // palette has no blue but the water's navy. Orange and white it
+          // is — the warm accent against the green hills and the sky.
+          '#18a3f9': { color: 'accentWarm' },
+          '#b6b6b6': { color: 'amber', material: 'paletteEmissive' },
+        },
+      },
+    },
+  },
 };
 
 // ------------------------------------------------------------------ helpers

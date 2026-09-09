@@ -87,7 +87,8 @@ const {
   LEAD_IN,
   SHIPPED_UNITS_PER_YEAR,
 } = await import('../src/world/areas/careerTimeline.js');
-const { plazaFloorRadius } = await import('../src/world/areas/ProjectsArea.js');
+const { plazaFloorRadius, plazaDressing, plazaLayout, plazaLamps, plazaStringLights, PLAZA_DRESSING, PLAZA_LAMPS, PLAZA_LIGHTS, BOARD, TOTAL_HEIGHT } =
+  await import('../src/world/areas/ProjectsArea.js');
 const { contactPlan } = await import('../src/world/areas/contactArc.js');
 const { default: roles } = await import('../src/content/roles.js');
 const { default: links } = await import('../src/content/links.js');
@@ -154,8 +155,32 @@ console.log('\nthe routes, against the real height field:');
   check(
     'three routes, all curved and sampled (guard made to fail)',
     plan.routes.length === 3 &&
-      plan.routes.every((r) => r.points.length === 3 && r.samples.length > r.points.length)
+      plan.routes.every((r) => r.points.length >= 3 && r.samples.length > r.points.length)
   );
+
+  // The projects road (9 Sep): from under the car, around the name's LEFT
+  // end (the right stands against the river), to the plaza — and the car
+  // spawns facing along it.
+  {
+    const road = plan.routes.find((r) => r.id === 'landing-projects');
+    const landing = areaDefs.find((d) => d.id === 'landing');
+    const [s0, s1] = road.samples;
+    check('the projects road starts under the car at the spawn (guard made to fail)',
+      Math.hypot(s0[0] - landing.center[0], s0[1] - landing.center[1]) < 2.0,
+      Math.hypot(s0[0] - landing.center[0], s0[1] - landing.center[1]).toFixed(2));
+    // Screen-right is (√½, −√½): a road that leaves to the screen-left has a
+    // negative across component in its first step.
+    const across = (s1[0] - s0[0]) * Math.SQRT1_2 - (s1[1] - s0[1]) * Math.SQRT1_2;
+    check('the projects road leaves the spawn to the screen-left, around the name (guard made to fail)', across < -0.5, across.toFixed(2));
+    const tangent = Math.atan2(s1[0] - s0[0], s1[1] - s0[1]);
+    check('the landing heading in content/areas.js faces along the road (guard made to fail)',
+      Math.abs(tangent - landing.heading) < 0.06, `road ${tangent.toFixed(3)}, def ${landing.heading}`);
+    // Around the name: past the letters' left end the road is down-screen
+    // of the line and every sample of the rest stays below it.
+    const letterLine = 5.2 * Math.SQRT2; // toward, as x + z
+    const pastName = road.samples.filter(([x, z]) => x + z > letterLine + 1.0);
+    check('the road gets down-screen of the name and stays there', pastName.length > road.samples.length / 2);
+  }
 
   const expectWet = { 'landing-projects': false, 'landing-contact': true, 'contact-career': true };
   // Under a deck the car rides the deck, not the river bed the cover put
@@ -319,11 +344,12 @@ console.log('ground-cover strips like the reference\x27s, not meshes):');
       channel(mid[0], mid[1], 1).toFixed(2)
     );
   }
-  // [6, 14]: flat land between the landing and the pond, clear of every
-  // route and channel — the first probe point sat on the north branch's
-  // carved bank, where cover is legitimately zero.
-  check('open land is grassy', channel(6, 14, 1) > 0.6, channel(6, 14, 1).toFixed(2));
-  check('open land grows blades', channel(6, 14, 2) > 0.5, channel(6, 14, 2).toFixed(2));
+  // [12.7, 7.1]: flat land screen-right of the tagline, clear of every
+  // route and channel (the first probe point sat on the north branch's
+  // carved bank, where cover is legitimately zero; the second, [6, 14], is
+  // under the projects road since it went around the name, 9 Sep).
+  check('open land is grassy', channel(12.7, 7.1, 1) > 0.6, channel(12.7, 7.1, 1).toFixed(2));
+  check('open land grows blades', channel(12.7, 7.1, 2) > 0.5, channel(12.7, 7.1, 2).toFixed(2));
   check('no blades through the landing decals', channel(4.2, 4.2, 2) < 0.05, channel(4.2, 4.2, 2).toFixed(2));
   const contactCenter = areaDefs.find((d) => d.id === 'contact').center;
   check('no blades in the contact arc', channel(contactCenter[0], contactCenter[1], 2) < 0.05);
@@ -658,6 +684,262 @@ console.log('plaza gate, the fishing spot), against the ground, the road and the
       `stands ${across.toFixed(2)} across, hangs ${hangAcross.toFixed(2)}`);
     check(`${item.what} stands off the deck's kerb`, Math.abs(across) >= BRIDGE.width / 2 + DRESSING.lanternAside * 0 + 0.5);
   }
+}
+
+// ------------------------------------------------------ the plaza's dressing
+console.log('\nthe plaza\'s dressing (the rim, the paddock corner and the tethered balloon —');
+console.log('rounds two and three, 7–8 Sep; the crate stacks left 9 Sep), on the disc:');
+{
+  const def = areaDefs.find((d) => d.id === 'projects');
+  const plan = wayfindingPlan();
+  const ground = new Terrain();
+  const floor = plazaFloorRadius(def, projects.length);
+  const items = plazaDressing(def.center, projects.length);
+  const ACROSS = [Math.SQRT1_2, -Math.SQRT1_2];
+  const TO_CAMERA = [Math.SQRT1_2, Math.SQRT1_2];
+  // The lamp posts: `Game.LAMP_PLACEMENTS` reads `plazaLamps` — ±6 across,
+  // +4 toward the camera of the standing point — the numbers that used to
+  // be written out there as world XZ (35.1, 16.6 / 26.6, 25.1).
+  const lamps = plazaLamps(def.center).map((l) => l.at);
+  check('the lamps stand where Game wrote them until 8 Sep (guard made to fail)',
+    Math.hypot(lamps[0][0] - 35.1, lamps[0][1] - 16.6) < 0.05 && Math.hypot(lamps[1][0] - 26.6, lamps[1][1] - 25.1) < 0.05,
+    lamps.map((l) => `(${l[0].toFixed(1)}, ${l[1].toFixed(1)})`).join(' '));
+
+  // Each body's box comes off the shipped GLB, the way `props.standProp`
+  // derives its collider: the bounds in the model's own frame, turned by the
+  // placement's yaw (local +X → (cos θ, −sin θ), local +Z → (sin θ, cos θ)).
+  const { NodeIO } = await import('@gltf-transform/core');
+  const { readFileSync } = await import('node:fs');
+  const io = new NodeIO();
+  const boundsCache = new Map();
+  const boundsOf = async (kind) => {
+    if (boundsCache.has(kind)) return boundsCache.get(kind);
+    const doc = await io.readBinary(new Uint8Array(readFileSync(`public/models/${kind}.glb`)));
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
+    for (const mesh of doc.getRoot().listMeshes()) {
+      for (const primitive of mesh.listPrimitives()) {
+        const pos = primitive.getAttribute('POSITION').getArray();
+        for (let i = 0; i < pos.length; i += 3) {
+          for (let k = 0; k < 3; k++) {
+            min[k] = Math.min(min[k], pos[i + k]);
+            max[k] = Math.max(max[k], pos[i + k]);
+          }
+        }
+      }
+    }
+    const b = { min, max, size: max.map((v, k) => v - min[k]) };
+    boundsCache.set(kind, b);
+    return b;
+  };
+  const boxes = [];
+  for (const item of items) {
+    const b = await boundsOf(item.kind);
+    const cx = (b.min[0] + b.max[0]) / 2;
+    const cz = (b.min[2] + b.max[2]) / 2;
+    const c = Math.cos(item.rotationY);
+    const s = Math.sin(item.rotationY);
+    boxes.push({
+      item,
+      x: item.x + cx * c + cz * s,
+      z: item.z - cx * s + cz * c,
+      hx: b.size[0] / 2,
+      hz: b.size[2] / 2,
+      ax: [c, -s],
+      az: [s, c],
+      // A floating visual reaches the ground only at its anchor.
+      reach: item.body === false ? 0 : Math.hypot(b.size[0], b.size[2]) / 2,
+    });
+  }
+  // Two turned rectangles overlap iff no axis of either separates them.
+  const overlaps = (a, b, margin = 0) => {
+    for (const axis of [a.ax, a.az, b.ax, b.az]) {
+      const project = (box) => {
+        const centre = box.x * axis[0] + box.z * axis[1];
+        const r = box.hx * Math.abs(box.ax[0] * axis[0] + box.ax[1] * axis[1]) +
+          box.hz * Math.abs(box.az[0] * axis[0] + box.az[1] * axis[1]);
+        return [centre - r, centre + r];
+      };
+      const [a0, a1] = project(a);
+      const [b0, b1] = project(b);
+      if (a1 + margin < b0 || b1 + margin < a0) return false;
+    }
+    return true;
+  };
+
+  const kinds = (k) => items.filter((i) => i.kind === k).length;
+  // No sundial: it stood on the axis for an hour on 7 Sep and was cut (no
+  // job — the sun's direction is fixed, so it could not tell the time).
+  check('the rim, three rail panels and a balloon — and no crate stacks (guard made to fail)',
+    kinds('crate') === 0 && kinds('haystack') === 1 && kinds('barrel') === 2 &&
+      kinds('keg') === 1 && kinds('crateCube') === 1 && kinds('sundial') === 0 && kinds('balloon') === 1 &&
+      ['railFence1', 'railFence2', 'railFence3'].every((k) => kinds(k) === 1),
+    `${items.length} items`);
+  check('the balloon is a visual on a tether, no body (guard made to fail)',
+    items.every((i) => (i.body === false) === (i.kind === 'balloon')) && items.find((i) => i.kind === 'balloon').float > 1.2);
+  // Nothing on the plaza is fixed since 9 Sep: the rails went knockable on
+  // Michael's drive ("make the fence below edgeball project board knockable").
+  check('every body on the plaza is knockable, the rails included (guard made to fail)',
+    items.every((i) => !i.fixed));
+
+  for (const box of boxes) {
+    const { item } = box;
+    const h = ground.heightAt(item.x, item.z);
+    check(`${item.what} stands on the flat disc`, Math.abs(h) <= 0.1, `h ${h.toFixed(3)}`);
+    check(`${item.what} is off the road`, distanceToRoutes(item.x, item.z) > ROAD.half + 0.3,
+      distanceToRoutes(item.x, item.z).toFixed(2));
+    // The whole box on the disc (a quarter unit past the edge was allowed
+    // while the right-hand crate stack's outer crate overhung it by 0.23;
+    // the stacks left 9 Sep and the bar is the drawn edge again).
+    const fromCentre = Math.hypot(item.x - def.center[0], item.z - def.center[1]);
+    check(`${item.what} is on the floor disc, box within its edge (guard made to fail)`,
+      fromCentre + box.reach <= floor,
+      `${(fromCentre + box.reach).toFixed(2)} against ${floor.toFixed(2)}`);
+    // Fast travel drops the car on the standing point (`def.spawn`): a car's
+    // length and more between it and anything born on the disc.
+    const dSpawn = Math.hypot(item.x - def.spawn[0], item.z - def.spawn[1]) - box.reach;
+    check(`${item.what} clears the fast-travel landing`, dSpawn > 3.5, dSpawn.toFixed(2));
+    for (const [lx, lz] of lamps) {
+      const d = Math.hypot(item.x - lx, item.z - lz) - box.reach;
+      check(`${item.what} clears the lamp at (${lx.toFixed(1)}, ${lz.toFixed(1)})`, d > 0.5, d.toFixed(2));
+    }
+    for (const post of plan.signposts) {
+      check(`${item.what} clears the ${post.id} post`, Math.hypot(post.at[0] - item.x, post.at[1] - item.z) > 1.5);
+    }
+  }
+
+  // No two bodies born inside each other (the corridor fence's domino). Two
+  // FIXED bodies cannot shove, and the paddock's rails meet at their corner
+  // post on purpose — only pairs with a knockable in them count.
+  let overlapping = 0;
+  for (let i = 0; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i];
+      const b = boxes[j];
+      if (a.item.fixed && b.item.fixed) continue;
+      if (a.item.body === false || b.item.body === false) continue;
+      if (overlaps(a, b, 0.05)) {
+        overlapping++;
+        console.log(`    ${a.item.what} is born through ${b.item.what}`);
+      }
+    }
+  }
+  check('no two plaza bodies are born overlapping (guard made to fail)', overlapping === 0, `${overlapping} pairs`);
+
+  // The paddock: two back rails on one line with a hand's gap between them,
+  // the side rail square to them, all three around one corner point with a
+  // notch there — knockable bodies born touching shove apart at build, so
+  // no two panels may touch, and the gaps are held small enough to read as
+  // one fence (each panel's own end posts stand either side of a gap).
+  const rails = boxes.filter((b) => b.item.paddock);
+  // A panel's ends along its rails, from the SHIPPED length (`boundsOf`),
+  // not the plan's step.
+  const ends = (b) => [-1, 1].map((e) => [b.item.x + b.az[0] * e * b.hz, b.item.z + b.az[1] * e * b.hz]);
+  const gapBetween = (a, b) => Math.min(...ends(a).flatMap((p) => ends(b).map((q) => Math.hypot(p[0] - q[0], p[1] - q[1]))));
+  const [back0, back1, side] = rails;
+  check('three rail panels make the paddock', rails.length === 3);
+  const offLine = Math.abs((back1.item.x - back0.item.x) * back0.ax[0] + (back1.item.z - back0.item.z) * back0.ax[1]);
+  check('the two back rails run on one line (guard made to fail)',
+    Math.abs(back0.item.rotationY - back1.item.rotationY) < 1e-9 && offLine < 0.02, `off the line by ${offLine.toFixed(3)}`);
+  const backGap = gapBetween(back0, back1);
+  check('the back rails stand end to end with a hand between them, not touching (guard made to fail)',
+    backGap >= 0.05 && backGap <= 0.2, `gap ${backGap.toFixed(3)}`);
+  check('the side rail stands square to the back rail (guard made to fail)',
+    Math.abs(Math.abs(back0.item.rotationY - side.item.rotationY) - Math.PI / 2) < 1e-9);
+  // The corner point: where the two runs' lines cross. Both near ends stand
+  // a short reach from it — the notch — and neither panel crosses the other.
+  const cornerGap = gapBetween(back0, side);
+  check('the side rail meets the back rail at the corner with a notch, not a crossing (guard made to fail)',
+    cornerGap >= 0.05 && cornerGap <= 0.45 && !overlaps(back0, side, 0.03), `corner gap ${cornerGap.toFixed(3)}`);
+  const hay = boxes.find((b) => b.item.kind === 'haystack');
+  check('the paddock stands up-screen of the haystack (behind it, seen from the camera)',
+    rails.every((r) => (r.item.x - hay.item.x) * -TO_CAMERA[0] + (r.item.z - hay.item.z) * -TO_CAMERA[1] > 0));
+  check('the rails clear the haystack by a hand (guard made to fail)',
+    rails.every((r) => !overlaps(r, hay, 0.3)));
+
+  // The balloon under the fixed camera: a point at height h projects like a
+  // ground point h further up-screen (45° elevation), so the balloon's
+  // screen rows run from anchor-ahead + float − bob to + float + bob + its
+  // height. It must hang above every board whose column it shares, and its
+  // top must sit inside the frame the arrival lands in (17.6 ahead of the
+  // car, the plaza's measured frame).
+  const balloon = items.find((i) => i.kind === 'balloon');
+  const bBounds = await boundsOf('balloon');
+  const envelope = Math.max(bBounds.size[0], bBounds.size[2]) / 2;
+  const aside = (i) => (i.x - def.center[0]) * ACROSS[0] + (i.z - def.center[1]) * ACROSS[1];
+  const ahead = (i) => -((i.x - def.center[0]) * TO_CAMERA[0] + (i.z - def.center[1]) * TO_CAMERA[1]);
+  const lowestRow = ahead(balloon) + balloon.float - balloon.bob;
+  const topRow = ahead(balloon) + balloon.float + balloon.bob + bBounds.size[1];
+  check('the balloon GLB is 5.5 tall, grounded at the basket\'s floor', Math.abs(bBounds.size[1] - 5.5) < 1e-3 && Math.abs(bBounds.min[1]) < 1e-4,
+    bBounds.size.map((v) => v.toFixed(2)).join(' x '));
+  for (const board of plazaLayout(def.center, projects.length)) {
+    const shares = Math.abs(aside(board) - aside(balloon)) < envelope + BOARD.width / 2 + 0.3;
+    const boardTop = ahead(board) + TOTAL_HEIGHT;
+    check(`the balloon hangs clear of board ${board.index} on screen (guard made to fail)`,
+      !shares || lowestRow - boardTop >= 1.0,
+      shares ? `shares its column; basket row ${lowestRow.toFixed(1)} against top ${boardTop.toFixed(1)}` : 'own column');
+  }
+  check('the balloon\'s top is inside the arrival frame (guard made to fail)', topRow <= 17.6, `top row ${topRow.toFixed(1)} against 17.6`);
+  check('the balloon floats a car\'s height clear of the paving through its bob', balloon.float - balloon.bob > 1.2);
+
+  // The string lights between the boards' tops (8 Sep; they hung between
+  // the lamps for an hour — "the car phases through the line" — the lamps
+  // are 2.7 over a 1.2 car): one span per neighbouring pair along the arc,
+  // hooked at the title plates' top corners, sagging in the middle, every
+  // bulb a car's height over the roof, nowhere near the landed car's rows.
+  {
+    const lights = plazaStringLights(def.center, projects.length, { heightAt: (x, z) => ground.heightAt(x, z) });
+    const boards = plazaLayout(def.center, projects.length);
+    const asideOf = (p) => (p.x - def.center[0]) * ACROSS[0] + (p.z - def.center[1]) * ACROSS[1];
+    check('one span between every neighbouring pair of boards (guard made to fail)',
+      lights.spans.length === projects.length - 1 &&
+        lights.spans.every((s) => Math.abs(asideOf(boards[s.boards[0]]) - asideOf(boards[s.boards[1]])) < 9 &&
+          asideOf(boards[s.boards[0]]) < asideOf(boards[s.boards[1]])),
+      `${lights.spans.length} spans`);
+    // The title plate's top corner, from the board's own numbers — the
+    // width 3.80 and the stack's 3.23 are literals here on purpose: the
+    // guard must not read the plan's constants back to itself.
+    const PLATE_HALF = 1.9;
+    const STACK_TOP = 3.23;
+    for (const span of lights.spans) {
+      const [l, r] = span.boards.map((i) => boards[i]);
+      const dFrom = Math.hypot(span.from[0] - l.x, span.from[2] - l.z);
+      const dTo = Math.hypot(span.to[0] - r.x, span.to[2] - r.z);
+      check(`span ${span.boards.join('-')} hooks at the plates' top corners (guard made to fail)`,
+        dFrom <= PLATE_HALF && dFrom >= PLATE_HALF - 0.3 && dTo <= PLATE_HALF && dTo >= PLATE_HALF - 0.3 &&
+          span.from[1] < STACK_TOP && span.from[1] > STACK_TOP - 0.15 && span.to[1] < STACK_TOP && span.to[1] > STACK_TOP - 0.15,
+        `${dFrom.toFixed(2)} / ${dTo.toFixed(2)} from the centres, at ${span.from[1].toFixed(2)}`);
+      const mid = span.cord[Math.floor(span.cord.length / 2)];
+      const hookMid = (span.from[1] + span.to[1]) / 2;
+      check(`span ${span.boards.join('-')} sags its sag in the middle`, Math.abs(hookMid - mid[1] - PLAZA_LIGHTS.sag) < 0.02, `mid ${mid[1].toFixed(2)}`);
+      const lowest = Math.min(...span.bulbs.map(([x, y, z]) => y - ground.heightAt(x, z)));
+      check(`span ${span.boards.join('-')} hangs every bulb a car's height over the roof (guard made to fail)`,
+        lowest >= 1.2 + 1.0, `lowest ${lowest.toFixed(2)} against 2.2`);
+      check(`span ${span.boards.join('-')} has bulbs at even steps, none on a hook`,
+        span.bulbs.length >= 8 &&
+          span.bulbs.every((b) => Math.hypot(b[0] - span.from[0], b[2] - span.from[2]) > 0.2 && Math.hypot(b[0] - span.to[0], b[2] - span.to[2]) > 0.2),
+        `${span.bulbs.length} bulbs`);
+      // The cord stays between its two plates across the screen — it never
+      // crosses a board's face.
+      const asides = span.cord.map((p) => (p[0] - def.center[0]) * ACROSS[0] + (p[2] - def.center[1]) * ACROSS[1]);
+      check(`span ${span.boards.join('-')} runs between its plates, over no face`,
+        Math.min(...asides) >= asideOf(l) + PLATE_HALF - PLAZA_LIGHTS.hookInset - 1e-6 && Math.max(...asides) <= asideOf(r) - PLATE_HALF + PLAZA_LIGHTS.hookInset + 1e-6);
+    }
+    // Under the fixed camera a point at height h projects like a ground
+    // point h further up-screen: the lowest cord point sits this many rows
+    // up the arrival frame, against a landed car whose roof's far edge is
+    // at 2.75 up-screen.
+    const rows = lights.spans.flatMap((s) => s.cord.map((p) => -((p[0] - def.center[0]) * TO_CAMERA[0] + (p[2] - def.center[1]) * TO_CAMERA[1]) + p[1]));
+    check('the strings hang well above the landed car on screen (guard made to fail)', Math.min(...rows) > 2.75 + 3.0, `lowest row ${Math.min(...rows).toFixed(1)}`);
+  }
+
+  // The shipped panels against the plan's length: the run steps by the
+  // shortest so no panel is born through the next, and none is far longer.
+  const panelLengths = await Promise.all(['railFence1', 'railFence2', 'railFence3'].map(async (k) => (await boundsOf(k)).size[2]));
+  const longest = Math.max(...panelLengths);
+  check('the run\'s step clears the longest shipped rail by a hand (guard made to fail)',
+    PLAZA_DRESSING.panelStep - longest >= 0.05 && PLAZA_DRESSING.panelStep - longest <= 0.2,
+    `step ${PLAZA_DRESSING.panelStep} against ${panelLengths.map((v) => v.toFixed(3)).join(' / ')}`);
 }
 
 console.log(`\ncheck-wayfinding: ${failed === 0 ? 'ok' : `${failed} FAILED`}`);

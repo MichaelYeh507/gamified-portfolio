@@ -89,8 +89,11 @@ export default class LandingArea extends Area {
    * the ground, facing the camera, asleep on a cuboid of its own bounds —
    * the contact icons' pattern at the reference's letters' numbers. Laid out with
    * proportional widths along the screen-horizontal axis, centred on the
-   * camera-side line, so the opening frame reads name-under-car and the
-   * first thing a visitor can DO is drive through their host's name.
+   * camera-side line, so the opening frame reads name-under-car. Until
+   * 9 Sep the first thing a visitor could DO was drive through their host's
+   * name — the projects road began behind it; now the road leaves from
+   * under the car and rounds the name's left end (`wayfindingPlan`,
+   * `PROJECTS_ROAD`), and the name stays there to be driven through.
    */
   _buildLetters(name) {
     const font = this.game.letterFont;

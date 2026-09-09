@@ -63,7 +63,7 @@ import View from '../world/View.js';
 import Areas from '../world/areas/Areas.js';
 import Beacons from '../world/areas/Beacons.js';
 import Card from '../world/areas/Card.js';
-import ProjectsArea from '../world/areas/ProjectsArea.js';
+import ProjectsArea, { plazaLamps } from '../world/areas/ProjectsArea.js';
 import CareerArea from '../world/areas/CareerArea.js';
 import LandingArea from '../world/areas/LandingArea.js';
 import ContactArea from '../world/areas/ContactArea.js';
@@ -94,11 +94,14 @@ const IDLE_INPUT = Object.freeze({ steer: 0, drive: 0, actions: Object.freeze({ 
  *
  * A placement list in code, deliberately small: when the emissive layer
  * lands, lamps become `PoleLights`' business and this list moves there.
+ *
+ * Derived from `ProjectsArea.plazaLamps` since 8 Sep (it used to be the two
+ * world XZ literals 35.1, 16.6 / 26.6, 25.1), so the plaza's plan and its
+ * suite read the lamps from one set of numbers. The string lights hung from
+ * these posts for an hour that morning and moved to the boards' tops: the
+ * lamps are too short over a car for a cord to clear it.
  */
-const LAMP_PLACEMENTS = [
-  { at: [35.1, 16.6], heading: Math.PI * 0.25 },
-  { at: [26.6, 25.1], heading: Math.PI * 0.25 },
-];
+const LAMP_PLACEMENTS = plazaLamps(areaDefs.find((def) => def.id === 'projects').center);
 
 /**
  * The singleton, with a hard and explicit init order.
@@ -359,22 +362,28 @@ export default class Game {
     // and any physics words (the streetlight carries a collider) must survive.
     // 'bonfire' and the logs joined for the contact area's gathering spot —
     // already prepped and credited with the rest of the medieval pack.
-    // 'crate' and 'haystack' joined 2 Sep for the plaza's dressing — prepped
-    // and credited with the pack on 31 Aug, unused until then.
+    // 'haystack' joined 2 Sep for the plaza's dressing — prepped and
+    // credited with the pack on 31 Aug, unused until then. 'crate' joined
+    // with it as the stacks beside the boards and left 9 Sep (Michael:
+    // "remove the boxes between each project panel"); it stays prepped.
     // 'pontoon' (6 Sep, the human-props pack) is the bridge `Wayfinding`
     // stands over every ford — one model, stretched to each span. The rest
     // of that pack joined the same evening for the art pass's first round:
     // lanterns at the bridges and the plaza gate, kegs, a cube crate, a
     // bucket and fishing rods at the fire circle and the fishing spot
-    // (`dressingPlan`, `contactPlan.camp`). The pack's rail fences and
-    // sundial are prepped (`railFence1..3`, `sundial`) and wait for a
-    // placement before they are loaded — nothing ships that nothing stands.
+    // (`dressingPlan`, `contactPlan.camp`). Round two (7 Sep): the pack's
+    // rail fences stand as a paddock corner behind the plaza's haystack
+    // (`ProjectsArea.plazaDressing`). The sundial stays prepped and unloaded
+    // — placed and cut the same evening (Michael: "what's the point").
     const DRESSING_FILES = [
       'fence', 'cart', 'barrel', 'streetlight', 'bonfire', 'logPlain', 'logPine',
-      'crate', 'haystack', 'pontoon',
+      'haystack', 'pontoon',
       'lanternPost', 'keg', 'crateCube', 'bucket', 'fishingRod1', 'fishingRod2',
-      // The rowboat (7 Sep, Michael's find, CREDITS.md), moored at the trunk bridge.
+      // The rowboat (7 Sep, Michael's find, CREDITS.md), moored at the career crossing.
       'rowboat',
+      'railFence1', 'railFence2', 'railFence3',
+      // The balloon (8 Sep, Michael's find, CREDITS.md), tethered over the plaza.
+      'balloon',
     ];
     const found = await this.resourcesLoader.load([
       ...['lampPost', 'carBuggy', ...SHRUB_FILES, ...FLORA_FILES, ...ROCK_FILES,
@@ -897,9 +906,13 @@ export default class Game {
    */
   placeAtStart() {
     const spawn = this.island.spawns[0] ?? { x: 0, z: 0, heading: 0 };
-    const projects = this.areas.get('projects');
-    const heading = projects
-      ? Math.atan2(projects.center.x - spawn.x, projects.center.z - spawn.z)
+    // Face along the projects road's first tangent: the road leaves from
+    // under the car (9 Sep), so the first press of W follows it. It used to
+    // face the plaza's bearing, which was the name's — the letters stood
+    // between the car and a road that began behind them.
+    const road = wayfindingPlan().routes.find((r) => r.id === 'landing-projects');
+    const heading = road
+      ? Math.atan2(road.samples[1][0] - road.samples[0][0], road.samples[1][1] - road.samples[0][1])
       : spawn.heading;
 
     this.car.respawn(

@@ -34,9 +34,13 @@ export default [
     // not overlap; LandingArea's header carries the arithmetic.
     center: [0, 0],
     radius: 5,
-    // Face the projects plaza, the same bearing `Game.placeAtStart` derives —
-    // the one moment the site gets to say "there is somewhere to go".
-    heading: 1.0,
+    // Face along the projects road as it leaves the spawn, the bearing
+    // `Game.placeAtStart` derives from the road's first samples — the one
+    // moment the site gets to say "there is somewhere to go". A number here
+    // because this file imports nothing; `check-wayfinding` holds it to the
+    // road (it was 1.0, the plaza's bearing, while the road began behind
+    // the name).
+    heading: -0.76,
   },
   {
     id: 'projects',

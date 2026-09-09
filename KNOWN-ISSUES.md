@@ -1527,7 +1527,18 @@ on the phone itself — that is Michael's next look at the live URL.
   — map open and close by call and by `M`, respawns, the nudge — gave teal
   every time. Recorded so a "the river went dark" report has a lead: the
   water's tint follows the day cycle and the reveal, and something in that
-  sequence left it at night while the ground stayed at day.
+  sequence left it at night while the ground stayed at day. **Seen a third
+  time, 9 Sep, with a cleaner context:** an MCP tab had its page reloaded
+  by Vite (a comment edit in `LandingArea.js`) between two probes, and the
+  next screenshot was the fresh boot's own opening frame — the car at the
+  spawn mid-intro, the day cycle unpinned, the land lit as a dim evening and
+  every channel flat navy, no ripple contours, no shore band. So the lead is
+  the boot: in the first seconds after a load the water's look lags the
+  ground's. The first screenshot of every clean session this week (taken
+  8–10 s after the load) showed teal, so it clears itself within the intro;
+  a visitor on a slow connection may see it. Next step when it matters:
+  read `Water.js`'s tint path for a uniform that is only written on a
+  day-cycle change and never at construction.
 - **The third carved span on the career road carries no bridge**
   (`bridgePlan`, 6 Sep). The road skims the head of a southern channel:
   the centreline never gets wet, one edge sits in 0.02 of water, the other

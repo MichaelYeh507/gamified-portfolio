@@ -69,7 +69,7 @@ export const ROAD = Object.freeze({
   width: 3.4,
   half: 1.7,
   /**
-   * Under `CareerArea`'s FLOOR_LIFT (0.06) and the plaza floor's, on purpose:
+   * Under `CareerArea`'s FLOOR_LIFT (0.06), on purpose (the plaza's own disc mesh is gone since 7 Sep — its paving is painted by the terrain like the roads'):
    * where a wayfinding road runs under a district's own paving the two quads
    * are 0.015 apart instead of coplanar, so the joins are seamless overlaps
    * rather than z-fighting seams.
@@ -79,9 +79,29 @@ export const ROAD = Object.freeze({
 
 export const FORD = Object.freeze({ carveCap: 0.32, run: 4.8, blend: 0.15 });
 
-/** Where a route stops short of the landing's decals — the letters line ends
- *  at radius 8.15 and the tagline at 8.2, both toward the camera. */
-const LANDING_EDGE_PLAZA = 10;
+/**
+ * The projects road's own control points, in screen coordinates from the
+ * spawn (`[across, toward]`: screen-right along (√½, −√½), down-screen
+ * along (√½, √½)) — the one route authored point by point rather than bowed
+ * between two rays, because it has to get around the name. It used to
+ * start 10 units down the ray to the plaza, BEHIND the letter line (which
+ * stands 5.2 down-screen of the spawn and 12.4 wide): the opening frame
+ * showed the car facing its host's name and no road at all, and the road
+ * began on the far side of the letters (Michael, 9 Sep: "i dont think its
+ * intuitive for them to go through my name at the start to go to the
+ * projects"). The name's right end stands against the trunk river (0.8 of
+ * water at across 9, toward 2 — mapped before choosing), so the road leaves
+ * from under the car to the screen-LEFT, rounds the name's left end a full
+ * kerb clear of the last letter, and sweeps right under the tagline to the
+ * plaza's rim. The car spawns facing along it (`Game.placeAtStart`, and
+ * the landing's `heading` in `content/areas.js`, held equal by the suite).
+ */
+const PROJECTS_ROAD = [
+  [-0.5, 1.5],
+  [-9.5, 2.5],
+  [-9.5, 9.5],
+  [-3, 14.5],
+];
 /** The contact route leaves the landing away from every decal. */
 const LANDING_EDGE_CONTACT = 4;
 /** Route ends at the district thresholds (clearing/arc edges, see plan()). */
@@ -105,6 +125,12 @@ export function distanceToSegment(x, z, ax, az, bx, bz) {
   let t = lengthSq === 0 ? 0 : ((x - ax) * dx + (z - az) * dz) / lengthSq;
   t = t < 0 ? 0 : t > 1 ? 1 : t;
   return Math.hypot(x - (ax + dx * t), z - (az + dz * t));
+}
+
+/** Point `across` screen-right and `toward` down-screen of `from` — the
+ *  fixed camera's frame (decision 16), the same axes every area lays out in. */
+function screen(from, across, toward) {
+  return [from[0] + (across + toward) * Math.SQRT1_2, from[1] + (toward - across) * Math.SQRT1_2];
 }
 
 /** Point `dist` along the ray from `from` toward `to`. */
@@ -250,7 +276,10 @@ function derivePlan(unitsPerYear) {
   const routes = [
     {
       id: 'landing-projects',
-      points: bowed(onRay(landing, plaza, LANDING_EDGE_PLAZA), onRay(plaza, landing, plazaEdge - 0.8), 1.6),
+      points: [
+        ...PROJECTS_ROAD.map(([across, toward]) => screen(landing, across, toward)),
+        onRay(plaza, landing, plazaEdge - 0.8),
+      ],
     },
     {
       id: 'landing-contact',

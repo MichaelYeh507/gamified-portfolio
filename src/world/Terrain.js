@@ -187,7 +187,7 @@ const CHANNEL_KEEP_OUT = [{ x: 28, z: 18, radius: 21 }];
 /**
  * The plaza's own numbers, **derived from the modules that own them**.
  *
- * `plazaFloorRadius` is the same function `ProjectsArea._floorGeometry` uses to
+ * `plazaFloorRadius` is the same function the paving pass below uses to
  * size the disc it draws, so a basin can never end up narrower than the floor
  * on top of it — which would leave the outer boards standing on the rim and
  * turn the basin back into the dish it exists not to be. No cycle: `Area` gets
@@ -791,7 +791,13 @@ export default class Terrain {
      *       standing content owns (the landing's decal line, the contact
      *       arc, the corridor's slab lanes) where a 0.6-unit blade would
      *       grow through authored type.
-     *   A — paving: 1 on a road's slabs, 0 off it. The reference's red channel
+     *   A — paving: 1 on a road's slabs and across the plaza's disc, 0 off
+     *       them (the plaza joined 7 Sep — Michael: "is the plaza just
+     *       sitting on a non textured dome right now, it looks kinda off";
+     *       it was a flat dirt-coloured disc mesh lifted 6 cm, a stand-in
+     *       from before the roads were paved, and now the landing road
+     *       flows into a paved circle drawn by the same shader, feathered
+     *       at the rim like a road's edge). The reference's red channel
      *       (`Floor.js:55`, `terrainData.r` masks the reference's slab texture in) —
      *       the second thing Michael's drive of the first painted roads
      *       found ("the current state of the roads is not very good"):
@@ -829,6 +835,13 @@ export default class Terrain {
     const contactDef = areaDefs.find((def) => def.id === 'contact');
     const projectsDef = areaDefs.find((def) => def.id === 'projects');
     const floorR = projectsDef ? PROJECTS_FLOOR_RADIUS : 0;
+    // The plaza's paving: full slabs to 0.55 inside the floor radius, then
+    // the road's own 0.5 feather to the rim — `paving` measured from a
+    // kerb the floor radius stands in for.
+    const plazaSlab = (x, z) =>
+      projectsDef
+        ? paving(Math.hypot(x - projectsDef.center[0], z - projectsDef.center[1]) - (floorR - ROAD.half))
+        : 0;
 
     const discFade = (x, z, center, radius, feather) => {
       if (!center) return 1;
@@ -873,9 +886,10 @@ export default class Terrain {
           blades *= t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
         }
 
-        // Paving: the routes and the corridor's avenue, dry land only — a
-        // ford keeps its slabs to the waterline and the gradient takes over.
-        const slab = Math.max(routeSlab(x, z), laneSlab(x, z)) * smoothstep01((h + 0.34) / 0.08);
+        // Paving: the routes, the corridor's avenue and the plaza's disc,
+        // dry land only — a ford keeps its slabs to the waterline and the
+        // gradient takes over.
+        const slab = Math.max(routeSlab(x, z), laneSlab(x, z), plazaSlab(x, z)) * smoothstep01((h + 0.34) / 0.08);
 
         const at = (iz * SAMPLES + ix) * 4;
         data[at] = h;
